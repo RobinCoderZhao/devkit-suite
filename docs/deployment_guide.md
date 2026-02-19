@@ -326,19 +326,23 @@ NewsBot 和 DevKit 在每次 LLM 调用后输出 token 消耗和成本：
 ## 7. 环境变量速查表
 
 | 变量 | 适用产品 | 默认值 | 说明 |
-|------|----------|--------|------|
+| --- | --- | --- | --- |
 | `LLM_API_KEY` | 全部 | — | LLM API 密钥 |
 | `LLM_PROVIDER` | 全部 | `openai` | 提供商: openai/gemini/claude/ollama/minimax |
 | `LLM_MODEL` | 全部 | `gpt-4o-mini` | 模型名称 |
 | `OPENAI_API_KEY` | DevKit | — | OpenAI 密钥（备选） |
 | `TELEGRAM_BOT_TOKEN` | NewsBot, WatchBot | — | Telegram Bot Token |
 | `TELEGRAM_CHANNEL_ID` | NewsBot, WatchBot | — | 频道 ID |
-| `NEWSBOT_DB` | NewsBot | `newsbot.db` | 数据库路径 |
-| `SMTP_HOST` | NewsBot | `smtp.gmail.com` | SMTP 服务器 |
-| `SMTP_PORT` | NewsBot | `587` | SMTP 端口 (587=STARTTLS, 465=TLS) |
-| `SMTP_FROM` | NewsBot | — | 发送者邮箱 |
-| `SMTP_PASSWORD` | NewsBot | — | SMTP 密码/应用专用密码 |
-| `SMTP_TO` | NewsBot | — | 默认收件人（兼容旧版，推荐用 subscribe 命令） |
+| `NEWSBOT_DB` | NewsBot | `newsbot.db` | NewsBot 数据库路径 |
+| `WATCHBOT_DB` | WatchBot | `data/watchbot.db` | WatchBot 数据库路径 |
+| `SMTP_HOST` | NewsBot, WatchBot | — | SMTP 服务器 |
+| `SMTP_PORT` | NewsBot, WatchBot | `587` | SMTP 端口 (587=STARTTLS, 465=TLS) |
+| `SMTP_FROM` | NewsBot, WatchBot | — | 发送者邮箱 |
+| `SMTP_PASSWORD` | NewsBot, WatchBot | — | SMTP 密码/应用专用密码 |
+| `SMTP_TO` | NewsBot | — | 默认收件人（推荐用 subscribe 命令） |
+| `GOOGLE_API_KEY` | WatchBot | — | Google Custom Search API 密钥 |
+| `GOOGLE_CX` | WatchBot | — | Google Custom Search Engine ID |
+| `BING_API_KEY` | WatchBot | — | Bing Web Search API 密钥 |
 | `DEVKIT_LICENSE_KEY` | DevKit | — | 许可证密钥 |
 
 ---
@@ -346,10 +350,11 @@ NewsBot 和 DevKit 在每次 LLM 调用后输出 token 消耗和成本：
 ## 8. 故障排查
 
 | 问题 | 排查步骤 |
-|------|----------|
+| --- | --- |
 | LLM 请求超时 | 检查 `LLM_API_KEY` 是否正确，网络是否可达 |
 | Telegram 推送失败 | 确认 Bot 已加入频道且有发送权限 |
 | SQLite 锁冲突 | 确保只有一个进程写入，WAL 模式默认开启 |
 | MCP Session 404 | 客户端需重新发送 `initialize` 请求 |
 | RSS 解析失败 | 部分 RSS 源可能变更格式，检查日志 |
-| 内存增长 | WatchBot snapshot cache 为内存存储，监控目标过多时考虑持久化 |
+| WatchBot 页面抓取失败 | 部分网站屏蔽爬虫，检查 URL 是否可正常访问 |
+| 邮件发送失败 | 确认 SMTP_HOST/SMTP_FROM/SMTP_PASSWORD 配置正确 |

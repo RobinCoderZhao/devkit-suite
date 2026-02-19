@@ -294,14 +294,12 @@ build_app() {
 init_database() {
     step "初始化 SQLite 数据库"
 
+    # NewsBot DB
     DB_PATH="${DATA_DIR}/newsbot.db"
-
     if [ -f "${DB_PATH}" ]; then
-        log "数据库已存在: ${DB_PATH}"
-        return
-    fi
-
-    sqlite3 "${DB_PATH}" << 'SQLEOF'
+        log "NewsBot 数据库已存在: ${DB_PATH}"
+    else
+        sqlite3 "${DB_PATH}" << 'SQLEOF'
 PRAGMA journal_mode=WAL;
 
 CREATE TABLE IF NOT EXISTS articles (
@@ -330,7 +328,17 @@ CREATE INDEX IF NOT EXISTS idx_articles_source ON articles(source);
 CREATE INDEX IF NOT EXISTS idx_articles_fetched ON articles(fetched_at);
 CREATE INDEX IF NOT EXISTS idx_digests_date ON digests(date);
 SQLEOF
-    log "数据库初始化完成: ${DB_PATH}"
+        log "NewsBot 数据库初始化完成: ${DB_PATH}"
+    fi
+
+    # WatchBot DB (V2 — tables auto-created by Go code, just ensure file exists)
+    WB_PATH="${DATA_DIR}/watchbot.db"
+    if [ -f "${WB_PATH}" ]; then
+        log "WatchBot 数据库已存在: ${WB_PATH}"
+    else
+        sqlite3 "${WB_PATH}" 'PRAGMA journal_mode=WAL;'
+        log "WatchBot 数据库初始化完成: ${WB_PATH} (表由程序自动创建)"
+    fi
 }
 
 # ===========================
@@ -361,8 +369,22 @@ LLM_MODEL=gpt-4o-mini
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHANNEL_ID=
 
-# NewsBot 数据库路径 (相对或绝对路径)
+# 邮件通知（可选，配置后启用邮件推送）
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_FROM=
+SMTP_PASSWORD=
+
+# NewsBot 数据库路径
 NEWSBOT_DB=data/newsbot.db
+
+# WatchBot 数据库路径
+WATCHBOT_DB=data/watchbot.db
+
+# WatchBot 搜索 API（可选，用于自然语言添加竞品）
+GOOGLE_API_KEY=
+GOOGLE_CX=
+BING_API_KEY=
 ENVEOF
     chmod 600 "${ENV_FILE}"
     log "环境文件已创建: ${ENV_FILE}"
@@ -476,7 +498,7 @@ EOF
 Description=DevKit Suite Database Backup
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c 'mkdir -p ${DATA_DIR}/backups && cp ${DATA_DIR}/newsbot.db ${DATA_DIR}/backups/newsbot_\$(date +%%Y%%m%%d_%%H%%M%%S).db && find ${DATA_DIR}/backups -name "*.db" -mtime +30 -delete'
+ExecStart=/bin/bash -c 'mkdir -p ${DATA_DIR}/backups && cp ${DATA_DIR}/newsbot.db ${DATA_DIR}/backups/newsbot_\$(date +%%Y%%m%%d_%%H%%M%%S).db && cp ${DATA_DIR}/watchbot.db ${DATA_DIR}/backups/watchbot_\$(date +%%Y%%m%%d_%%H%%M%%S).db 2>/dev/null; find ${DATA_DIR}/backups -name "*.db" -mtime +30 -delete'
 EOF
 
     cat > /etc/systemd/system/devkit-backup.timer << EOF
@@ -560,6 +582,7 @@ print_done() {
         echo "  # 2. 加载环境变量并运行"
         echo "  export \$(grep -v '^#' ${ENV_FILE} | xargs)"
         echo "  ./bin/newsbot run         # 运行一次新闻抓取"
+        echo "  ./bin/watchbot add <url>  # 添加竞品监控"
         echo "  ./bin/watchbot check      # 运行一次竞品检查"
         echo "  ./bin/devkit commit       # AI 生成 commit message"
         echo "  ./bin/devkit review       # AI 代码审查"
