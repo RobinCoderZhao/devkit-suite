@@ -12,10 +12,11 @@ import (
 type Provider string
 
 const (
-	OpenAI Provider = "openai"
-	Gemini Provider = "gemini"
-	Claude Provider = "claude"
-	Ollama Provider = "ollama"
+	OpenAI  Provider = "openai"
+	Gemini  Provider = "gemini"
+	Claude  Provider = "claude"
+	Ollama  Provider = "ollama"
+	MiniMax Provider = "minimax"
 )
 
 // Config holds configuration for an LLM client.
@@ -59,7 +60,7 @@ type Client interface {
 
 // Message represents a single message in a conversation.
 type Message struct {
-	Role    string `json:"role"`    // "system", "user", "assistant"
+	Role    string `json:"role"` // "system", "user", "assistant"
 	Content string `json:"content"`
 }
 
@@ -100,6 +101,11 @@ func NewClient(cfg Config) (Client, error) {
 		return newClaudeClient(cfg)
 	case Ollama:
 		return newOllamaClient(cfg)
+	case MiniMax:
+		if cfg.BaseURL == "" {
+			cfg.BaseURL = "https://api.minimax.io/v1"
+		}
+		return newOpenAIClient(cfg)
 	default:
 		return nil, fmt.Errorf("unsupported LLM provider: %s", cfg.Provider)
 	}

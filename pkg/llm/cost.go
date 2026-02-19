@@ -20,6 +20,13 @@ var pricing = map[string]modelPrice{
 	"claude-3-5-sonnet-20241022": {Input: 3.00, Output: 15.00},
 	"claude-3-5-haiku-20241022":  {Input: 0.80, Output: 4.00},
 	"claude-3-opus-20240229":     {Input: 15.00, Output: 75.00},
+
+	// MiniMax
+	"MiniMax-M2.5":           {Input: 1.10, Output: 4.40},
+	"MiniMax-M2.5-highspeed": {Input: 0.55, Output: 2.20},
+	"MiniMax-M2.1":           {Input: 0.80, Output: 3.20},
+	"MiniMax-M2.1-highspeed": {Input: 0.40, Output: 1.60},
+	"MiniMax-M2":             {Input: 0.50, Output: 2.00},
 }
 
 type modelPrice struct {

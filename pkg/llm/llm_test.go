@@ -98,3 +98,44 @@ func (m *mockClient) GenerateJSON(ctx context.Context, req *Request, out any) er
 }
 func (m *mockClient) Provider() Provider { return "mock" }
 func (m *mockClient) Close() error       { return nil }
+
+func TestNewClient_MiniMax(t *testing.T) {
+	client, err := NewClient(Config{Provider: MiniMax, APIKey: "test-key"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer client.Close()
+	// MiniMax reuses OpenAI client, reports as OpenAI provider
+	if client.Provider() != OpenAI {
+		t.Fatalf("expected OpenAI provider (via MiniMax), got %s", client.Provider())
+	}
+}
+
+func TestEstimateCost_MiniMax(t *testing.T) {
+	cost := EstimateCost("MiniMax-M2.5", 1000, 500)
+	if cost <= 0 {
+		t.Fatalf("expected positive cost for MiniMax-M2.5, got %f", cost)
+	}
+}
+
+func TestStripThinkTags(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"no tags", "Hello world", "Hello world"},
+		{"with think tags", "<think>reasoning here</think>Actual response", "Actual response"},
+		{"multiline think", "<think>\nstep 1\nstep 2\n</think>\nFinal answer", "Final answer"},
+		{"empty content", "", ""},
+		{"only think", "<think>only thinking</think>", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripThinkTags(tt.input)
+			if got != tt.expected {
+				t.Errorf("stripThinkTags(%q) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}

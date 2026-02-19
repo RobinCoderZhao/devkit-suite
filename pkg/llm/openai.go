@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -151,9 +153,14 @@ func (c *openaiClient) Generate(ctx context.Context, req *Request) (*Response, e
 		return nil, fmt.Errorf("no choices in response")
 	}
 
+	content := oResp.Choices[0].Message.Content
+
+	// Strip <think>...</think> tags from MiniMax responses
+	content = stripThinkTags(content)
+
 	latency := time.Since(start).Milliseconds()
 	return &Response{
-		Content:   oResp.Choices[0].Message.Content,
+		Content:   content,
 		TokensIn:  oResp.Usage.PromptTokens,
 		TokensOut: oResp.Usage.CompletionTokens,
 		Cost:      EstimateCost(oResp.Model, oResp.Usage.PromptTokens, oResp.Usage.CompletionTokens),
@@ -177,4 +184,14 @@ func (c *openaiClient) Provider() Provider {
 
 func (c *openaiClient) Close() error {
 	return nil
+}
+
+// thinkTagRe matches <think>...</think> blocks (including multiline).
+var thinkTagRe = regexp.MustCompile(`(?s)<think>.*?</think>`)
+
+// stripThinkTags removes <think>...</think> reasoning blocks from content.
+// MiniMax M2.x models include chain-of-thought in <think> tags by default.
+func stripThinkTags(content string) string {
+	stripped := thinkTagRe.ReplaceAllString(content, "")
+	return strings.TrimSpace(stripped)
 }
