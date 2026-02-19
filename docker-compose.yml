@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  newsbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: newsbot
+    restart: unless-stopped
+    entrypoint: ["/bin/newsbot", "serve"]
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHANNEL_ID=${TELEGRAM_CHANNEL_ID}
+      - NEWSBOT_DB=/data/newsbot.db
+    volumes:
+      - newsbot-data:/data
+
+  watchbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: watchbot
+    restart: unless-stopped
+    entrypoint: ["/bin/watchbot", "serve"]
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHANNEL_ID=${TELEGRAM_CHANNEL_ID}
+
+volumes:
+  newsbot-data:
