@@ -20,10 +20,11 @@ const (
 
 // Message represents a notification message.
 type Message struct {
-	Title  string `json:"title"`
-	Body   string `json:"body"`
-	Format string `json:"format"` // "markdown", "html", "plain"
-	URL    string `json:"url,omitempty"`
+	Title    string `json:"title"`
+	Body     string `json:"body"`
+	HTMLBody string `json:"html_body,omitempty"` // Rich HTML for email
+	Format   string `json:"format"`              // "markdown", "html", "plain"
+	URL      string `json:"url,omitempty"`
 }
 
 // Notifier defines the interface for sending notifications.

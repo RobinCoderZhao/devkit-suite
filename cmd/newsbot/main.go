@@ -53,6 +53,7 @@ func main() {
 type NewsBotConfig struct {
 	LLM      llm.Config
 	Telegram notify.TelegramConfig
+	Email    notify.EmailConfig
 	DBPath   string
 }
 
@@ -63,13 +64,20 @@ func loadConfig() NewsBotConfig {
 			Model:       getEnv("LLM_MODEL", "gpt-4o-mini"),
 			APIKey:      os.Getenv("LLM_API_KEY"),
 			MaxRetries:  3,
-			Timeout:     60 * time.Second,
+			Timeout:     120 * time.Second,
 			MaxTokens:   4096,
 			Temperature: 0.3,
 		},
 		Telegram: notify.TelegramConfig{
 			BotToken:  os.Getenv("TELEGRAM_BOT_TOKEN"),
 			ChannelID: os.Getenv("TELEGRAM_CHANNEL_ID"),
+		},
+		Email: notify.EmailConfig{
+			SMTPHost: getEnv("SMTP_HOST", "smtp.gmail.com"),
+			SMTPPort: getEnv("SMTP_PORT", "465"),
+			From:     getEnv("SMTP_FROM", "robin254817@gmail.com"),
+			Password: os.Getenv("SMTP_PASSWORD"),
+			To:       os.Getenv("SMTP_TO"),
 		},
 		DBPath: getEnv("NEWSBOT_DB", "newsbot.db"),
 	}
@@ -81,11 +89,16 @@ func runOnce() error {
 
 	slog.Info("starting NewsBot run")
 
-	// 1. Initialize data sources
+	// 1. Initialize data sources (8 diverse AI news feeds)
 	registry := sources.NewRegistry()
 	registry.Register(sources.NewHackerNewsSource(30))
 	registry.Register(sources.NewRSSSource("TechCrunch AI", "https://techcrunch.com/category/artificial-intelligence/feed/"))
 	registry.Register(sources.NewRSSSource("MIT Tech Review", "https://www.technologyreview.com/topic/artificial-intelligence/feed"))
+	registry.Register(sources.NewRSSSource("The Verge AI", "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"))
+	registry.Register(sources.NewRSSSource("Ars Technica AI", "https://feeds.arstechnica.com/arstechnica/technology-lab"))
+	registry.Register(sources.NewRSSSource("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"))
+	registry.Register(sources.NewRSSSource("OpenAI Blog", "https://openai.com/blog/rss.xml"))
+	registry.Register(sources.NewRSSSource("Google AI Blog", "https://blog.google/technology/ai/rss/"))
 
 	// 2. Fetch articles
 	slog.Info("fetching articles from all sources")
@@ -139,6 +152,11 @@ func runOnce() error {
 	if cfg.Telegram.BotToken != "" {
 		dispatcher.Register(notify.NewTelegramNotifier(cfg.Telegram))
 		channels = append(channels, notify.ChannelTelegram)
+	}
+
+	if cfg.Email.From != "" && cfg.Email.Password != "" && cfg.Email.To != "" {
+		dispatcher.Register(notify.NewEmailNotifier(cfg.Email))
+		channels = append(channels, notify.ChannelEmail)
 	}
 
 	if len(channels) > 0 {

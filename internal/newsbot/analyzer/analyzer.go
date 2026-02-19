@@ -3,6 +3,7 @@ package analyzer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -69,22 +70,20 @@ func (a *Analyzer) Analyze(ctx context.Context, articles []sources.Article) (*Da
 		Messages: []llm.Message{
 			{Role: "user", Content: fmt.Sprintf("今天是 %s。\n\n以下是今天收集到的 AI 相关新闻：\n\n%s", time.Now().Format("2006-01-02"), sb.String())},
 		},
-		JSONMode: true,
+		MaxTokens:   4096,
+		Temperature: 0.3,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("LLM analysis failed: %w", err)
 	}
 
+	// Extract JSON from response (may contain markdown code fence or extra text)
+	jsonContent := extractJSON(resp.Content)
+
 	var digest DailyDigest
-	if err := a.client.GenerateJSON(ctx, &llm.Request{
-		System: analyzerSystemPrompt,
-		Messages: []llm.Message{
-			{Role: "user", Content: fmt.Sprintf("今天是 %s。\n\n以下是今天收集到的 AI 相关新闻：\n\n%s", time.Now().Format("2006-01-02"), sb.String())},
-		},
-	}, &digest); err != nil {
-		// Fallback: use the raw text result
+	if err := json.Unmarshal([]byte(jsonContent), &digest); err != nil {
+		// Fallback: treat the entire response as summary text
 		digest = DailyDigest{
-			Date:    time.Now().Format("2006-01-02"),
 			Summary: resp.Content,
 		}
 	}
@@ -97,6 +96,31 @@ func (a *Analyzer) Analyze(ctx context.Context, articles []sources.Article) (*Da
 	return &digest, nil
 }
 
+// extractJSON extracts JSON object from a string that may contain markdown fences or extra text.
+func extractJSON(s string) string {
+	// Remove markdown code fence
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "```json") {
+		s = strings.TrimPrefix(s, "```json")
+		if idx := strings.LastIndex(s, "```"); idx >= 0 {
+			s = s[:idx]
+		}
+	} else if strings.HasPrefix(s, "```") {
+		s = strings.TrimPrefix(s, "```")
+		if idx := strings.LastIndex(s, "```"); idx >= 0 {
+			s = s[:idx]
+		}
+	}
+
+	// Find the first { and last } to extract JSON object
+	start := strings.Index(s, "{")
+	end := strings.LastIndex(s, "}")
+	if start >= 0 && end > start {
+		return s[start : end+1]
+	}
+	return strings.TrimSpace(s)
+}
+
 const analyzerSystemPrompt = `你是一位 AI 领域的资深编辑，负责制作每日 AI 热点日报。
 
 你的任务：
@@ -104,7 +128,13 @@ const analyzerSystemPrompt = `你是一位 AI 领域的资深编辑，负责制�
 2. 去重：相同事件的多篇报道合并为一条
 3. 按重要性排序（high > medium > low）
 4. 为每条新闻写一句话摘要（中文，30 字以内）
-5. 生成一段总结（3-5 句话，概括今日 AI 领域大事）
+5. 生成总结（summary 字段）
+
+summary 格式要求（非常重要）：
+- 每条重要新闻独立成句，以"。"结尾
+- 每句30字以内，只讲一个主题
+- 不要用逗号把多个新闻连在一起
+- 示例：Reliance宣布1100亿美元AI投资计划。OpenAI与Tata合作建设印度数据中心。Mistral AI收购Koyeb布局云服务。
 
 重要性判断标准：
 - HIGH：大公司发布新模型、重大融资、行业政策变化、技术突破
@@ -123,5 +153,5 @@ const analyzerSystemPrompt = `你是一位 AI 领域的资深编辑，负责制�
       "tags": ["标签1", "标签2"]
     }
   ],
-  "summary": "今日 AI 领域总结（中文）"
+  "summary": "每条新闻独立成句。以句号分隔。"
 }`
