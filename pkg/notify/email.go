@@ -29,6 +29,13 @@ func NewEmailNotifier(cfg EmailConfig) Notifier {
 	return &emailNotifier{cfg: cfg}
 }
 
+// NewEmailNotifierForRecipient creates an email notifier targeting a specific recipient.
+// It clones the config and sets the To field.
+func NewEmailNotifierForRecipient(cfg EmailConfig, to string) Notifier {
+	cfg.To = to
+	return &emailNotifier{cfg: cfg}
+}
+
 func (e *emailNotifier) Channel() Channel {
 	return ChannelEmail
 }
