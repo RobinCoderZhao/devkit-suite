@@ -36,6 +36,7 @@ type Notifier interface {
 // Dispatcher routes messages to the appropriate notification channels.
 type Dispatcher struct {
 	notifiers map[Channel]Notifier
+	emailCfg  EmailConfig
 	logger    *slog.Logger
 }
 
@@ -45,6 +46,16 @@ func NewDispatcher() *Dispatcher {
 		notifiers: make(map[Channel]Notifier),
 		logger:    slog.Default(),
 	}
+}
+
+// SetEmailConfig stores the email configuration for per-recipient dispatch.
+func (d *Dispatcher) SetEmailConfig(cfg EmailConfig) {
+	d.emailCfg = cfg
+}
+
+// EmailConfig returns the stored email configuration.
+func (d *Dispatcher) EmailConfig() EmailConfig {
+	return d.emailCfg
 }
 
 // Register adds a notifier to the dispatcher.

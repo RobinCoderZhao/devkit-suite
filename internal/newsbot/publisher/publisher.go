@@ -8,43 +8,50 @@ import (
 	"strings"
 
 	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/analyzer"
+	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/i18n"
 	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/notify"
 )
 
 // Publisher formats digests and sends them via notification channels.
 type Publisher struct {
 	dispatcher *notify.Dispatcher
-	channels   []notify.Channel
 }
 
-// NewPublisher creates a new publisher with the given dispatcher and target channels.
-func NewPublisher(dispatcher *notify.Dispatcher, channels []notify.Channel) *Publisher {
-	return &Publisher{
-		dispatcher: dispatcher,
-		channels:   channels,
-	}
+// NewPublisher creates a new publisher with the given dispatcher.
+func NewPublisher(dispatcher *notify.Dispatcher) *Publisher {
+	return &Publisher{dispatcher: dispatcher}
 }
 
-// Publish formats a DailyDigest and sends it via configured channels.
-func (p *Publisher) Publish(ctx context.Context, digest *analyzer.DailyDigest) error {
+// PublishToEmail sends a digest in the specified language to the given email.
+func (p *Publisher) PublishToEmail(ctx context.Context, digest *analyzer.DailyDigest, lang i18n.Language, email string) error {
+	labels := i18n.GetLabels(lang)
 	msg := notify.Message{
-		Title:    fmt.Sprintf("🤖 AI 热点日报 — %s", digest.Date),
-		Body:     FormatDigest(digest),
-		HTMLBody: FormatDigestHTML(digest),
-		Format:   "markdown",
+		Title:    fmt.Sprintf("🤖 %s — %s", labels.DailyTitle, digest.Date),
+		Body:     FormatDigest(digest, lang),
+		HTMLBody: FormatDigestHTML(digest, lang),
+		Format:   "html",
 	}
 
-	return p.dispatcher.Dispatch(ctx, p.channels, msg)
+	// Create a one-off email notifier for this recipient
+	notifier := notify.NewEmailNotifier(notify.EmailConfig{
+		SMTPHost: p.dispatcher.EmailConfig().SMTPHost,
+		SMTPPort: p.dispatcher.EmailConfig().SMTPPort,
+		From:     p.dispatcher.EmailConfig().From,
+		Password: p.dispatcher.EmailConfig().Password,
+		To:       email,
+	})
+	return notifier.Send(ctx, msg)
 }
 
-// FormatDigest converts a DailyDigest into a Markdown-formatted message (for Telegram/stdout).
-func FormatDigest(digest *analyzer.DailyDigest) string {
+// FormatDigest converts a DailyDigest into a Markdown-formatted message.
+func FormatDigest(digest *analyzer.DailyDigest, lang i18n.Language) string {
+	labels := i18n.GetLabels(lang)
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("# 🤖 AI 热点日报 — %s\n\n", digest.Date))
+	sb.WriteString(fmt.Sprintf("# 🤖 %s — %s\n\n", labels.DailyTitle, digest.Date))
 
 	if digest.Summary != "" {
-		sb.WriteString(fmt.Sprintf("📝 **今日概览**\n%s\n\n", digest.Summary))
+		sb.WriteString(fmt.Sprintf("📝 **%s**\n%s\n\n", labels.Overview, digest.Summary))
 	}
 
 	sb.WriteString("---\n\n")
@@ -56,23 +63,20 @@ func FormatDigest(digest *analyzer.DailyDigest) string {
 			sb.WriteString(fmt.Sprintf("   %s\n", h.Summary))
 		}
 		if h.URL != "" {
-			sb.WriteString(fmt.Sprintf("   🔗 [原文](%s) | 来源: %s\n", h.URL, h.Source))
-		}
-		if len(h.Tags) > 0 {
-			sb.WriteString(fmt.Sprintf("   🏷 %s\n", strings.Join(h.Tags, ", ")))
+			sb.WriteString(fmt.Sprintf("   🔗 [%s](%s) | %s: %s\n", labels.ReadMore, h.URL, labels.Source, h.Source))
 		}
 		sb.WriteString("\n")
 	}
 
 	sb.WriteString("---\n")
-	sb.WriteString(fmt.Sprintf("*由 NewsBot 自动生成 | 消耗 Token: %d | 成本: $%.4f*\n",
-		digest.TokensUsed, digest.Cost))
+	sb.WriteString(fmt.Sprintf("*%s*\n", labels.GeneratedBy))
 
 	return sb.String()
 }
 
 // FormatDigestHTML generates a professional HTML newsletter from DailyDigest.
-func FormatDigestHTML(digest *analyzer.DailyDigest) string {
+func FormatDigestHTML(digest *analyzer.DailyDigest, lang i18n.Language) string {
+	labels := i18n.GetLabels(lang)
 	var sb strings.Builder
 
 	// Email wrapper
@@ -89,10 +93,10 @@ func FormatDigestHTML(digest *analyzer.DailyDigest) string {
 	sb.WriteString(fmt.Sprintf(`
 <!-- Header -->
 <tr><td style="background:linear-gradient(135deg,#667eea 0%%,#764ba2 100%%);border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;">
-  <h1 style="margin:0;font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">🤖 AI 热点日报</h1>
+  <h1 style="margin:0;font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">🤖 %s</h1>
   <p style="margin:8px 0 0;font-size:15px;color:rgba(255,255,255,0.85);font-weight:500;">%s</p>
 </td></tr>
-`, digest.Date))
+`, html.EscapeString(labels.DailyTitle), digest.Date))
 
 	// Summary section
 	if digest.Summary != "" {
@@ -104,18 +108,18 @@ func FormatDigestHTML(digest *analyzer.DailyDigest) string {
     <tr>
       <td style="width:4px;background:linear-gradient(180deg,#667eea,#764ba2);border-radius:2px;"></td>
       <td style="padding-left:16px;">
-        <p style="margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#667eea;">今日概览</p>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#667eea;">%s</p>
         %s
       </td>
     </tr>
   </table>
 </td></tr>
-`, summaryHTML))
+`, html.EscapeString(labels.Overview), summaryHTML))
 	}
 
 	// Headlines
 	for i, h := range digest.Headlines {
-		badge := importanceBadge(h.Importance)
+		badge := importanceBadge(h.Importance, labels)
 		bgColor := "#1a1a2e"
 		if i%2 == 1 {
 			bgColor = "#16162a"
@@ -136,8 +140,8 @@ func FormatDigestHTML(digest *analyzer.DailyDigest) string {
 		// Source + link
 		linkHTML := ""
 		if h.URL != "" {
-			linkHTML = fmt.Sprintf(`<a href="%s" style="color:#667eea;font-size:12px;text-decoration:none;font-weight:500;">阅读原文 →</a>`,
-				html.EscapeString(h.URL))
+			linkHTML = fmt.Sprintf(`<a href="%s" style="color:#667eea;font-size:12px;text-decoration:none;font-weight:500;">%s</a>`,
+				html.EscapeString(h.URL), html.EscapeString(labels.ReadMore))
 		}
 
 		sb.WriteString(fmt.Sprintf(`
@@ -181,11 +185,12 @@ func FormatDigestHTML(digest *analyzer.DailyDigest) string {
 <!-- Footer -->
 <tr><td style="background-color:#12121f;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
   <p style="margin:0;font-size:12px;color:#505070;line-height:1.6;">
-    由 <strong style="color:#667eea;">DevKit NewsBot</strong> 自动生成<br>
-    Token: %d · 成本: $%.4f · Powered by MiniMax M2.5
+    <strong style="color:#667eea;">%s</strong><br>
+    %s
   </p>
 </td></tr>
-`, digest.TokensUsed, digest.Cost))
+`, html.EscapeString(labels.GeneratedBy),
+		fmt.Sprintf(labels.TokenUsage, digest.TokensUsed, digest.Cost)))
 
 	// Close wrapper
 	sb.WriteString(`
@@ -198,10 +203,15 @@ func FormatDigestHTML(digest *analyzer.DailyDigest) string {
 	return sb.String()
 }
 
-// formatSummaryLines splits a Chinese summary into individual sentences for readable display.
+// formatSummaryLines splits summary into individual sentences for any language.
 func formatSummaryLines(summary string) string {
-	// Split by Chinese period, then filter empty items
-	parts := strings.Split(summary, "。")
+	// Split by both Chinese period (。) and English period followed by space (. )
+	// First normalize: replace 。 with a sentinel, then split
+	normalized := strings.ReplaceAll(summary, "。", "\n")
+	// Split English sentences: ". " followed by uppercase letter or emoji
+	normalized = splitEnglishSentences(normalized)
+	parts := strings.Split(normalized, "\n")
+
 	var lines []string
 	for _, p := range parts {
 		p = strings.TrimSpace(p)
@@ -210,7 +220,7 @@ func formatSummaryLines(summary string) string {
 		}
 		lines = append(lines, html.EscapeString(p))
 	}
-	if len(lines) == 0 {
+	if len(lines) <= 1 {
 		return fmt.Sprintf(`<p style="margin:0;font-size:15px;line-height:1.8;color:#e0e0e0;">%s</p>`, html.EscapeString(summary))
 	}
 
@@ -220,6 +230,29 @@ func formatSummaryLines(summary string) string {
           <span style="color:#667eea;margin-right:6px;">▸</span>%s</p>`, line))
 	}
 	return sb.String()
+}
+
+// splitEnglishSentences splits text at ". " boundaries (English sentence endings).
+func splitEnglishSentences(s string) string {
+	var result strings.Builder
+	runes := []rune(s)
+	for i := 0; i < len(runes); i++ {
+		result.WriteRune(runes[i])
+		// Check for ". " pattern (period + space, not inside numbers like "4.5")
+		if runes[i] == '.' && i+1 < len(runes) && runes[i+1] == ' ' {
+			// Make sure the character before '.' is a letter (not a digit)
+			if i > 0 && !isDigit(runes[i-1]) {
+				result.WriteRune('\n')
+				i++ // skip the space
+				continue
+			}
+		}
+	}
+	return result.String()
+}
+
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
 }
 
 func importanceEmoji(importance string) string {
@@ -235,14 +268,14 @@ func importanceEmoji(importance string) string {
 	}
 }
 
-func importanceBadge(importance string) string {
+func importanceBadge(importance string, labels i18n.Labels) string {
 	switch importance {
 	case "high":
-		return `<span style="display:inline-block;background:#ff4757;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;vertical-align:middle;text-transform:uppercase;">重要</span>`
+		return fmt.Sprintf(`<span style="display:inline-block;background:#ff4757;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;vertical-align:middle;text-transform:uppercase;">%s</span>`, html.EscapeString(labels.Important))
 	case "medium":
-		return `<span style="display:inline-block;background:#ffa502;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;vertical-align:middle;text-transform:uppercase;">关注</span>`
+		return fmt.Sprintf(`<span style="display:inline-block;background:#ffa502;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;vertical-align:middle;text-transform:uppercase;">%s</span>`, html.EscapeString(labels.Watch))
 	case "low":
-		return `<span style="display:inline-block;background:#2ed573;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;vertical-align:middle;text-transform:uppercase;">了解</span>`
+		return fmt.Sprintf(`<span style="display:inline-block;background:#2ed573;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;vertical-align:middle;text-transform:uppercase;">%s</span>`, html.EscapeString(labels.Info))
 	default:
 		return ""
 	}
