@@ -17,16 +17,42 @@
 
 ### 1.3 核心功能
 
-| 功能 | 优先级 | MVP | V2 |
-|------|--------|-----|-----|
-| 多源数据采集 | P0 | ✅ 5 个源 | 20+ 个源 |
-| LLM 智能摘要 | P0 | ✅ 每日 1 篇 | 多篇 + 分类 |
-| Telegram 推送 | P0 | ✅ | ✅ |
-| 邮件推送 | P1 | ❌ | ✅ |
-| 历史搜索 | P1 | ❌ | ✅ |
-| 自定义关键词订阅 | P2 | ❌ | ✅ |
-| 每周深度分析报告 | P2 | ❌ | ✅（付费） |
-| Slack/Discord 集成 | P2 | ❌ | ✅（付费） |
+| 功能 | 优先级 | MVP | V2 | 状态 |
+|------|--------|-----|-----|------|
+| 多源数据采集 | P0 | ✅ 5 个源 | 20+ 个源 | ✅ 已实现 8 个源 |
+| LLM 智能摘要 | P0 | ✅ 每日 1 篇 | 多篇 + 分类 | ✅ MiniMax M2.5 |
+| Telegram 推送 | P0 | ✅ | ✅ | 🔜 待接入 |
+| 邮件推送 | P1 | ❌ | ✅ | ✅ Gmail SMTP |
+| **多语言日报** | P1 | ❌ | ✅ | ✅ 6 种语言 |
+| **订阅者管理** | P1 | ❌ | ✅ | ✅ CLI 管理 |
+| 历史搜索 | P1 | ❌ | ✅ | 🔜 |
+| 自定义关键词订阅 | P2 | ❌ | ✅ | 🔜 |
+| 每周深度分析报告 | P2 | ❌ | ✅（付费） | 🔜 |
+| Slack/Discord 集成 | P2 | ❌ | ✅（付费） | 🔜 |
+
+### 1.4 已实现数据源
+
+| # | 来源 | 类型 | 说明 |
+|---|------|------|------|
+| 1 | Hacker News | API | Top 30 stories |
+| 2 | TechCrunch AI | RSS | AI 频道 |
+| 3 | MIT Tech Review | RSS | AI 频道 |
+| 4 | The Verge AI | RSS/Atom | AI 频道 |
+| 5 | Ars Technica | RSS | Tech Lab |
+| 6 | VentureBeat AI | RSS | AI 频道 |
+| 7 | OpenAI Blog | RSS | 官方博客 |
+| 8 | Google AI Blog | RSS | 官方博客 |
+
+### 1.5 多语言支持
+
+| 语言代码 | 语言 | 邮件标题 |
+|----------|------|----------|
+| zh | 中文 | AI 热点日报 |
+| en | English | AI Daily Digest |
+| ja | 日本語 | AI デイリーダイジェスト |
+| ko | 한국어 | AI 데일리 다이제스트 |
+| de | Deutsch | AI Täglicher Überblick |
+| es | Español | AI Resumen Diario |
 
 ---
 
@@ -90,19 +116,18 @@ type Scraper interface {
     Fetch(ctx context.Context) ([]Article, error)
 }
 
-// 每个数据源实现该接口
-type GitHubTrendingScraper struct { ... }
-type OpenAIBlogScraper struct { ... }
-type HackerNewsScraper struct { ... }
+// 已实现的数据源
+type HackerNewsSource struct { ... }  // API
+type RSSSource struct { ... }         // 通用 RSS/Atom
 ```
 
 #### 分析层 — LLM Summarizer
 
 ```go
-// internal/newsbot/summarizer.go
+// internal/newsbot/analyzer/analyzer.go
 type DailyDigest struct {
     Date       string          `json:"date"`
-    Headline   string          `json:"headline"`    // 今日一句话总结
+    Summary    string          `json:"summary"`     // 今日概览（每条新闻独立成句）
     Articles   []DigestArticle `json:"articles"`
     TotalCount int             `json:"total_count"`
 }
@@ -140,34 +165,26 @@ type DigestArticle struct {
 输出 JSON 格式（DailyDigest 结构）
 ```
 
-#### 分发层 — Publisher
+#### 分发层 — Publisher + i18n
 
 ```go
-// pkg/notify/telegram.go
-type TelegramPublisher struct {
-    BotToken string
-    ChatIDs  []string  // 支持多个频道/群组
-}
+// internal/newsbot/publisher/publisher.go
+pub := publisher.NewPublisher(dispatcher)
+pub.PublishToEmail(ctx, digest, lang, email)
 
-func (t *TelegramPublisher) Publish(digest DailyDigest) error {
-    // 格式化为 Telegram Markdown
-    // 发送到所有订阅频道
-}
-
-// 消息格式示例：
-// 📰 AI 日报 | 2026-02-24
-//
-// 🔥 今日焦点：OpenAI 发布 GPT-5 Turbo，API 价格下降 40%
-//
-// 🔴 [高] GPT-5 Turbo 发布
-// OpenAI 推出 GPT-5 Turbo，上下文窗口扩展至 256K...
-// 👉 对开发者：需要更新 model 参数，注意新的 response_format
-//
-// 🟡 [中] Claude 4 预览版开放申请
-// Anthropic 开放 Claude 4 早期访问...
-//
-// 📎 完整版：https://your-site.com/digest/2026-02-24
+// internal/newsbot/i18n/translator.go
+translator := i18n.NewTranslator(llmClient)
+digests := translator.TranslateAll(ctx, digest, []Language{LangZH, LangEN, LangJA})
+// 并行翻译：分析一次(zh) + 翻译 N 次，节省 80% LLM 成本
 ```
+
+**邮件模板特性**：
+
+- 暗色主题 Newsletter 设计（渐变头部、交替背景）
+- 重要性徽章（重要/关注/了解）
+- 彩色标签 + "阅读原文 →" 链接
+- 概览按句分行（支持中英文句号拆分）
+- 所有 UI 文本完整 i18n（6 种语言）
 
 ### 2.3 数据库设计
 
@@ -297,9 +314,11 @@ Pro 邮件列表                   付费用户 $9/月
 | 项目 | 月成本 |
 |------|--------|
 | VPS | $5 |
-| LLM API (GPT-4o-mini) | ~$3（每天 1 次摘要，约 5K tokens） |
+| LLM API (MiniMax M2.5) | ~$1（每天分析 ~7K tokens + 翻译 ~5K×5 tokens） |
 | 域名 | ~$1 |
-| **总计** | **~$9/月** |
+| **总计** | **~$7/月** |
+
+> MiniMax M2.5 相比 GPT-4o-mini 成本降低约 60%。
 
 > 1 个付费用户即可覆盖成本。
 

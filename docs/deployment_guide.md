@@ -19,7 +19,7 @@ make test
 
 ### 1.2 配置 LLM
 
-支持 4 种 LLM 提供商，通过环境变量配置：
+支持 5 种 LLM 提供商，通过环境变量配置：
 
 ```bash
 # OpenAI (默认)
@@ -41,6 +41,36 @@ export LLM_MODEL=claude-3-5-sonnet-20241022
 export LLM_PROVIDER=ollama
 export LLM_MODEL=llama3
 # OLLAMA_BASE_URL 默认 http://localhost:11434
+
+# MiniMax (推荐，成本低，OpenAI 兼容 API)
+export LLM_PROVIDER=minimax
+export LLM_API_KEY=sk-api-XXXXXXXX
+export LLM_MODEL=MiniMax-M2.5
+```
+
+### 1.3 配置邮件通知
+
+```bash
+# Gmail SMTP (需要应用专用密码，不是登录密码)
+export SMTP_HOST=smtp.gmail.com
+export SMTP_PORT=587
+export SMTP_FROM=your-email@gmail.com
+export SMTP_PASSWORD="xxxx xxxx xxxx xxxx"  # Gmail 应用专用密码
+```
+
+### 1.4 管理订阅者
+
+```bash
+# 添加订阅者（支持多语言）
+./bin/newsbot subscribe --email=user@example.com --lang=zh,en,ja
+
+# 查看所有订阅者
+./bin/newsbot subscribers
+
+# 取消订阅
+./bin/newsbot unsubscribe --email=user@example.com
+
+# 支持的语言：zh, en, ja, ko, de, es
 ```
 
 ---
@@ -298,12 +328,17 @@ NewsBot 和 DevKit 在每次 LLM 调用后输出 token 消耗和成本：
 | 变量 | 适用产品 | 默认值 | 说明 |
 |------|----------|--------|------|
 | `LLM_API_KEY` | 全部 | — | LLM API 密钥 |
-| `LLM_PROVIDER` | 全部 | `openai` | 提供商 |
-| `LLM_MODEL` | 全部 | `gpt-4o-mini` | 模型 |
+| `LLM_PROVIDER` | 全部 | `openai` | 提供商: openai/gemini/claude/ollama/minimax |
+| `LLM_MODEL` | 全部 | `gpt-4o-mini` | 模型名称 |
 | `OPENAI_API_KEY` | DevKit | — | OpenAI 密钥（备选） |
 | `TELEGRAM_BOT_TOKEN` | NewsBot, WatchBot | — | Telegram Bot Token |
 | `TELEGRAM_CHANNEL_ID` | NewsBot, WatchBot | — | 频道 ID |
 | `NEWSBOT_DB` | NewsBot | `newsbot.db` | 数据库路径 |
+| `SMTP_HOST` | NewsBot | `smtp.gmail.com` | SMTP 服务器 |
+| `SMTP_PORT` | NewsBot | `587` | SMTP 端口 (587=STARTTLS, 465=TLS) |
+| `SMTP_FROM` | NewsBot | — | 发送者邮箱 |
+| `SMTP_PASSWORD` | NewsBot | — | SMTP 密码/应用专用密码 |
+| `SMTP_TO` | NewsBot | — | 默认收件人（兼容旧版，推荐用 subscribe 命令） |
 | `DEVKIT_LICENSE_KEY` | DevKit | — | 许可证密钥 |
 
 ---

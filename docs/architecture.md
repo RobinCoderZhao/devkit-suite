@@ -10,8 +10,9 @@ DevKit Suite 采用 Go Monorepo 架构，通过共享包（`pkg/`）实现代码
                     │  ┌──────┐ ┌────────┐ ┌─────────┐ │
                     │  │OpenAI│ │Telegram│ │Hacker   │ │
                     │  │Gemini│ │Bot API │ │News API │ │
-                    │  │Claude│ │        │ │RSS Feeds│ │
-                    │  │Ollama│ │        │ │         │ │
+                    │  │Claude│ │  SMTP  │ │RSS Feeds│ │
+                    │  │Ollama│ │ (Email)│ │(8 源)   │ │
+                    │  │MiniMax││        │ │         │ │
                     │  └──┬───┘ └───┬────┘ └────┬────┘ │
                     └─────┼─────────┼───────────┼──────┘
                           │         │           │
@@ -56,6 +57,7 @@ graph TD
         NB_PUB[newsbot/publisher]
         NB_STO[newsbot/store]
         NB_SCH[newsbot/scheduler]
+        NB_I18N[newsbot/i18n]
         DK_GIT[devkit/git]
         DK_PRO[devkit/prompt]
         DK_CFG[devkit/config]
@@ -90,13 +92,18 @@ graph TD
 ### 3.1 NewsBot 数据流
 
 ```
-RSS/HN API  ──▶  Sources  ──▶  Articles[]  ──▶  LLM Analyzer  ──▶  DailyDigest
+RSS/HN API  ──▶  Sources  ──▶  Articles[]  ──▶  LLM Analyzer  ──▶  DailyDigest (zh)
                                     │                                     │
                                     ▼                                     ▼
-                              SQLite Store                         Publisher
-                                                                      │
-                                                                      ▼
-                                                              Telegram / Stdout
+                              SQLite Store                        i18n Translator
+                                                                (并行翻译 5 语言)
+                                                                       │
+                                                                       ▼
+                                                            map[lang]*DailyDigest
+                                                                       │
+                                                                       ▼
+                                                                Publisher
+                                                          (按订阅者语言分发邮件)
 ```
 
 ### 3.2 DevKit 数据流
@@ -130,7 +137,7 @@ Target URL  ──▶  Scraper  ──▶  Clean Text  ──▶  Differ  ──
 
 ### 4.2 LLM 抽象层
 
-`pkg/llm` 统一封装了 4 家 LLM 提供商的接口差异：
+`pkg/llm` 统一封装了 5 家 LLM 提供商的接口差异：
 
 ```go
 type Client interface {

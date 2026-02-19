@@ -6,7 +6,7 @@
 
 ```go
 // pkg/llm/client.go
-// 支持 OpenAI / Gemini / Claude / Ollama 的统一接口
+// 支持 OpenAI / Gemini / Claude / Ollama / MiniMax 的统一接口
 
 type Provider string
 const (
@@ -14,6 +14,7 @@ const (
     ProviderGemini   Provider = "gemini"
     ProviderClaude   Provider = "claude"
     ProviderOllama   Provider = "ollama"
+    ProviderMiniMax  Provider = "minimax"  // OpenAI-兼容 API
 )
 
 type Config struct {
@@ -58,6 +59,11 @@ func NewClient(cfg Config) (Client, error) {
         return newClaudeClient(cfg)
     case ProviderOllama:
         return newOllamaClient(cfg)
+    case ProviderMiniMax:
+        if cfg.BaseURL == "" {
+            cfg.BaseURL = "https://api.minimax.io/v1"
+        }
+        return newOpenAIClient(cfg)  // MiniMax 复用 OpenAI 客户端
     default:
         return nil, fmt.Errorf("unknown provider: %s", cfg.Provider)
     }
@@ -130,10 +136,11 @@ const (
 )
 
 type Message struct {
-    Title   string
-    Body    string
-    Format  string   // "markdown" / "html" / "plain"
-    URL     string   // 可选：附带链接
+    Title    string
+    Body     string
+    HTMLBody string   // 富文本 HTML（邮件使用）
+    Format   string   // "markdown" / "html" / "plain"
+    URL      string   // 可选：附带链接
 }
 
 type Notifier interface {
@@ -155,6 +162,12 @@ func (d *Dispatcher) Dispatch(ctx context.Context, channels []Channel, msg Messa
     }
     return nil
 }
+
+// 邮件通知器支持：
+// - Gmail SMTP (STARTTLS port 587)
+// - RFC 2047 base64 编码（支持中文/emoji 标题）
+// - Pre-rendered HTML body（来自 publisher）
+// - 按订阅者语言偏好发送对应版本
 ```
 
 ---
