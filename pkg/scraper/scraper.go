@@ -60,12 +60,35 @@ func NewHTTPFetcher() *HTTPFetcher {
 }
 
 // Fetch retrieves a URL and extracts clean text from the HTML.
+// If the page is JS-rendered (returns very little content), falls back to Jina Reader.
 func (f *HTTPFetcher) Fetch(ctx context.Context, url string, opts *FetchOptions) (*FetchResult, error) {
 	if opts == nil {
 		opts = DefaultFetchOptions()
 	}
 	f.client.Timeout = opts.Timeout
 
+	start := time.Now()
+
+	result, err := f.fetchDirect(ctx, url, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// If content is too small (likely JS-rendered SPA), try Jina Reader
+	if len(result.CleanText) < 500 {
+		jinaResult, jinaErr := f.fetchViaJina(ctx, url, opts.Timeout)
+		if jinaErr == nil && len(jinaResult) > len(result.CleanText) {
+			result.CleanText = jinaResult
+			result.Duration = time.Since(start)
+		}
+	}
+
+	result.Duration = time.Since(start)
+	return result, nil
+}
+
+// fetchDirect performs a standard HTTP fetch.
+func (f *HTTPFetcher) fetchDirect(ctx context.Context, url string, opts *FetchOptions) (*FetchResult, error) {
 	start := time.Now()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -113,6 +136,36 @@ func (f *HTTPFetcher) Fetch(ctx context.Context, url string, opts *FetchOptions)
 		FetchedAt:  time.Now(),
 		Duration:   time.Since(start),
 	}, nil
+}
+
+// fetchViaJina uses Jina Reader API (free) to render JS pages and extract content.
+// See: https://r.jina.ai
+func (f *HTTPFetcher) fetchViaJina(ctx context.Context, targetURL string, timeout time.Duration) (string, error) {
+	jinaURL := "https://r.jina.ai/" + targetURL
+
+	client := &http.Client{Timeout: timeout + 15*time.Second} // Jina needs more time
+	req, err := http.NewRequestWithContext(ctx, "GET", jinaURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("X-Return-Format", "markdown")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; WatchBot/2.0)")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("jina fetch: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("jina returned %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(body)), nil
 }
 
 // ExtractText converts HTML to clean structured text, removing navigation/footer/scripts.
