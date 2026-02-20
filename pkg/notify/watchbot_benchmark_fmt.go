@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/benchmarks"
 )
 
 // BenchmarkDigestData holds benchmark report data for notification formatting.

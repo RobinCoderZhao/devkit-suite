@@ -27,12 +27,12 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/watchbot"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks/parsers"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/notify"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/scraper"
+	"github.com/RobinCoderZhao/devkit-suite/internal/watchbot"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/benchmarks"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/benchmarks/parsers"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/notify"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/scraper"
 )
 
 var version = "2.0.0"

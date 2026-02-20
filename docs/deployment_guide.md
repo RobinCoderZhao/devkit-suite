@@ -11,8 +11,8 @@ goenv local 1.25.0
 go version  # → go1.25.0
 
 # 克隆并构建
-git clone https://github.com/RobinCoderZhao/API-Change-Sentinel.git
-cd API-Change-Sentinel
+git clone https://github.com/RobinCoderZhao/devkit-suite.git
+cd devkit-suite
 make all
 make test
 ```
@@ -223,7 +223,7 @@ DevKit 是本地开发工具，推荐安装到 `$GOPATH/bin`：
 
 ```bash
 # 方式一：从源码安装
-go install github.com/RobinCoderZhao/API-Change-Sentinel/cmd/devkit@latest
+go install github.com/RobinCoderZhao/devkit-suite/cmd/devkit@latest
 
 # 方式二：直接复制二进制
 cp bin/devkit /usr/local/bin/

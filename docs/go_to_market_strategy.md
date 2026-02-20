@@ -193,7 +193,7 @@ NewsBot 本身不收费，但它产生的价值是：
 
 ```bash
 ssh root@<server-ip>
-git clone https://github.com/RobinCoderZhao/API-Change-Sentinel.git /tmp/devkit
+git clone https://github.com/RobinCoderZhao/devkit-suite.git /tmp/devkit
 bash /tmp/devkit/deploy/setup.sh    # 约 2-3 分钟
 nano /opt/devkit-suite/.env         # 填入 API Key
 sudo systemctl start newsbot watchbot

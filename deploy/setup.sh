@@ -264,7 +264,7 @@ build_app() {
     step "构建应用"
 
     if [ "${MODE}" = "server" ]; then
-        REPO_URL="https://github.com/RobinCoderZhao/API-Change-Sentinel.git"
+        REPO_URL="https://github.com/RobinCoderZhao/devkit-suite.git"
         mkdir -p "${APP_DIR}"
         if [ -d "${APP_DIR}/.git" ]; then
             cd "${APP_DIR}" && git pull -q

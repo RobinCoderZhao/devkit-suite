@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	appconfig "github.com/RobinCoderZhao/API-Change-Sentinel/pkg/config"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
+	appconfig "github.com/RobinCoderZhao/devkit-suite/pkg/config"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
 )
 
 // DevKitConfig is the main configuration for DevKit CLI.

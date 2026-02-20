@@ -18,5 +18,5 @@ description: Development workflow for the DevKit Suite project
 ## Project Info
 
 - Go version: 1.25
-- Module path: github.com/RobinCoderZhao/API-Change-Sentinel
-- Project root: /Users/robin/myworkdir/robin-go/src/API-Change-Sentinel
+- Module path: github.com/RobinCoderZhao/devkit-suite
+- Project root: /Users/robin/myworkdir/robin-go/src/devkit-suite

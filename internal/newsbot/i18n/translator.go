@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/analyzer"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/analyzer"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
 )
 
 // Translator translates DailyDigest content to other languages using LLM.

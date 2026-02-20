@@ -1,4 +1,4 @@
-module github.com/RobinCoderZhao/API-Change-Sentinel
+module github.com/RobinCoderZhao/devkit-suite
 
 go 1.25
 

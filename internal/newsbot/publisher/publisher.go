@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/analyzer"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/i18n"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/notify"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/analyzer"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/i18n"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/notify"
 )
 
 // Publisher formats digests and sends them via notification channels.

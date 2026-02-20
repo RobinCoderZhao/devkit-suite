@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
-	devkitcfg "github.com/RobinCoderZhao/API-Change-Sentinel/internal/devkit/config"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/devkit/git"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/devkit/prompt"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
+	devkitcfg "github.com/RobinCoderZhao/devkit-suite/internal/devkit/config"
+	"github.com/RobinCoderZhao/devkit-suite/internal/devkit/git"
+	"github.com/RobinCoderZhao/devkit-suite/internal/devkit/prompt"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
 	"github.com/spf13/cobra"
 )
 

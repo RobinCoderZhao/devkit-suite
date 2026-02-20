@@ -92,7 +92,7 @@
 ssh root@<your-server-ip>
 
 # 一键部署（约 2-3 分钟）
-git clone https://github.com/RobinCoderZhao/API-Change-Sentinel.git /tmp/devkit
+git clone https://github.com/RobinCoderZhao/devkit-suite.git /tmp/devkit
 bash /tmp/devkit/deploy/setup.sh
 ```
 

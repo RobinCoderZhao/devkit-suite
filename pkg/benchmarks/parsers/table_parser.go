@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/benchmarks"
 )
 
 // ExtractMarkdownTable parses a Markdown table from Jina Reader output.

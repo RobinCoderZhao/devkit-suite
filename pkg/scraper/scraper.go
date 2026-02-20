@@ -23,7 +23,7 @@ type FetchOptions struct {
 // DefaultFetchOptions returns sensible defaults for fetching.
 func DefaultFetchOptions() *FetchOptions {
 	return &FetchOptions{
-		UserAgent:  "DevkitSuite/1.0 (compatible; Bot; +https://github.com/RobinCoderZhao/API-Change-Sentinel)",
+		UserAgent:  "DevkitSuite/1.0 (compatible; Bot; +https://github.com/RobinCoderZhao/devkit-suite)",
 		Timeout:    15 * time.Second,
 		RetryCount: 2,
 	}

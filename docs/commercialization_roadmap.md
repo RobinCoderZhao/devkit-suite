@@ -524,7 +524,7 @@ shared/
 ## ⚡ 项目结构建议（Monorepo）
 
 ```
-API-Change-Sentinel/                 // 项目根目录（可改名为 devkit-suite）
+devkit-suite/                 // 项目根目录（可改名为 devkit-suite）
 ├── cmd/
 │   ├── newsbot/                     // 产品 1：AI 热点日报
 │   ├── devkit/                      // 产品 2：CLI 工具套件

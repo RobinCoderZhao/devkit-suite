@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/scraper"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/benchmarks"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/scraper"
 )
 
 // LLMStatsParser fetches benchmark data from llm-stats.com.

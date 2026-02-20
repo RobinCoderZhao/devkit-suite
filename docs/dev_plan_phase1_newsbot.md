@@ -2,7 +2,7 @@
 
 > 前置依赖：Phase 0 全部完成
 >
-> 项目路径：`API-Change-Sentinel/cmd/newsbot/` + `API-Change-Sentinel/internal/newsbot/`
+> 项目路径：`devkit-suite/cmd/newsbot/` + `devkit-suite/internal/newsbot/`
 
 ---
 

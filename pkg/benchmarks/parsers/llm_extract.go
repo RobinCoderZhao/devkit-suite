@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/scraper"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/benchmarks"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/scraper"
 )
 
 // LLMExtractor extracts benchmark scores from vendor blog pages using LLM.

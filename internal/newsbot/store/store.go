@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/analyzer"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/sources"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/analyzer"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/sources"
 	_ "modernc.org/sqlite"
 )
 

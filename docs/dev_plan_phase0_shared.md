@@ -2,7 +2,7 @@
 
 > **本文档是开发执行手册，后续开发时直接按步骤执行。**
 >
-> Go 版本：**1.25** | 项目根目录：`API-Change-Sentinel/`
+> Go 版本：**1.25** | 项目根目录：`devkit-suite/`
 
 ---
 
@@ -11,14 +11,14 @@
 ### 操作
 
 ```bash
-cd API-Change-Sentinel
-go mod init github.com/RobinCoderZhao/API-Change-Sentinel
+cd devkit-suite
+go mod init github.com/RobinCoderZhao/devkit-suite
 ```
 
 ### 创建目录结构
 
 ```
-API-Change-Sentinel/
+devkit-suite/
 ├── cmd/
 │   ├── newsbot/                  # 产品 1 入口
 │   ├── devkit/                   # 产品 2 入口

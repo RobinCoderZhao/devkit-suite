@@ -2,7 +2,7 @@
 
 > 前置依赖：无（独立开发，但可复用 robotIM 已有代码）
 >
-> 项目路径：`API-Change-Sentinel/templates/mcp-server/`
+> 项目路径：`devkit-suite/templates/mcp-server/`
 
 ---
 

@@ -2,7 +2,7 @@
 
 > 前置依赖：Phase 0（`pkg/llm` 必须完成）
 >
-> 项目路径：`API-Change-Sentinel/cmd/devkit/` + `API-Change-Sentinel/internal/devkit/`
+> 项目路径：`devkit-suite/cmd/devkit/` + `devkit-suite/internal/devkit/`
 
 ---
 
@@ -305,7 +305,7 @@ brews:
   - repository:
       owner: RobinCoderZhao
       name: homebrew-tap
-    homepage: "https://github.com/RobinCoderZhao/API-Change-Sentinel"
+    homepage: "https://github.com/RobinCoderZhao/devkit-suite"
     description: "AI-powered developer CLI toolkit"
     install: bin.install "devkit"
 

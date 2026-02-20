@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
 )
 
 // Resolver resolves natural language input to monitoring URLs.

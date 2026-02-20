@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/sources"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/sources"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
 )
 
 // DailyDigest is the final output of the analyzer.

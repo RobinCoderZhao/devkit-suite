@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/analyzer"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/i18n"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/publisher"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/sources"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/newsbot/store"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/notify"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/analyzer"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/i18n"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/publisher"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/sources"
+	"github.com/RobinCoderZhao/devkit-suite/internal/newsbot/store"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/notify"
 )
 
 func main() {

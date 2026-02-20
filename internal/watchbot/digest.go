@@ -3,7 +3,7 @@ package watchbot
 import (
 	"strings"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/notify"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/notify"
 )
 
 // ComposeDigest creates a single aggregated notification for a subscriber.

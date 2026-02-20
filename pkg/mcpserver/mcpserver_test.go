@@ -3,7 +3,7 @@ package mcpserver_test
 import (
 	"testing"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/mcpserver"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/mcpserver"
 )
 
 // EchoTool is a simple tool for testing that echoes back its input.

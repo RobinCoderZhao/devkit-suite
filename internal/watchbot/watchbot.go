@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/differ"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/notify"
-	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/scraper"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/differ"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/notify"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/scraper"
 )
 
 // Target represents a monitoring target (legacy, kept for backward compatibility).

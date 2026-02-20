@@ -4,7 +4,7 @@ package i18n
 // Existing newsbot code continues to import internal/newsbot/i18n.
 
 import (
-	shared "github.com/RobinCoderZhao/API-Change-Sentinel/pkg/i18n"
+	shared "github.com/RobinCoderZhao/devkit-suite/pkg/i18n"
 )
 
 // Language is an alias for the shared Language type.
