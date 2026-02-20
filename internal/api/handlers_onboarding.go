@@ -23,7 +23,14 @@ func (s *Server) handleOnboarding() http.HandlerFunc {
 
 		ctx := r.Context()
 
-		// Provision templates based on industry
+		// 1. Fetch user to check their plan
+		u, err := s.userStore.GetUserByID(ctx, userID)
+		if err != nil || u == nil {
+			respondError(w, http.StatusUnauthorized, "User not found")
+			return
+		}
+
+		// 2. Provision templates based on industry
 		var templates []struct{ Name, Domain, URL, PageType string }
 
 		switch req.Industry {
@@ -48,7 +55,17 @@ func (s *Server) handleOnboarding() http.HandlerFunc {
 			}
 		}
 
-		// Insert the competitors and pages
+		// Gatekeeper logic: limit to 2 for Free users
+		maxCompetitors := 2
+		if u.Plan == "pro" {
+			maxCompetitors = 100 // generous limit for pro
+		}
+
+		if len(templates) > maxCompetitors {
+			templates = templates[:maxCompetitors]
+		}
+
+		// 3. Insert the competitors and pages
 		for _, t := range templates {
 			compID, err := s.watchbotStore.AddCompetitor(ctx, userID, t.Name, t.Domain)
 			if err == nil {

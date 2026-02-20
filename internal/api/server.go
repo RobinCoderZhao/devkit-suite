@@ -47,9 +47,18 @@ func (s *Server) Routes() http.Handler {
 	mux.Handle("GET /api/watchbot/dashboard", s.requireAuthHandler(http.HandlerFunc(s.handleDashboard())))
 	mux.Handle("GET /api/watchbot/competitors", s.requireAuthHandler(http.HandlerFunc(s.handleListCompetitors())))
 	mux.Handle("GET /api/watchbot/competitor/{id}", s.requireAuthHandler(http.HandlerFunc(s.handleCompetitorTimeline())))
+	mux.Handle("POST /api/watchbot/competitors", s.requireAuthHandler(http.HandlerFunc(s.handleAddCompetitor())))
+	mux.Handle("GET /api/watchbot/rules", s.requireAuthHandler(http.HandlerFunc(s.handleGetAlertRules())))
+	mux.Handle("POST /api/watchbot/rules", s.requireAuthHandler(http.HandlerFunc(s.handleAddAlertRule())))
 
 	// NewsBot
 	mux.Handle("GET /api/newsbot/feed", s.requireAuthHandler(http.HandlerFunc(s.handleNewsFeed())))
+
+	// Billing (Protected)
+	mux.Handle("POST /api/billing/create-checkout-session", s.requireAuthHandler(http.HandlerFunc(s.handleCreateCheckoutSession())))
+
+	// Webhooks (Public)
+	mux.HandleFunc("POST /api/webhooks/stripe", s.handleStripeWebhook())
 
 	return protected
 }

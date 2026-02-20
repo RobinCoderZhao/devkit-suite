@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     plan TEXT DEFAULT 'free', -- 'free', 'starter', 'pro'
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -16,6 +18,19 @@ CREATE TABLE IF NOT EXISTS competitors (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, domain)
+);
+
+CREATE TABLE IF NOT EXISTS alert_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    competitor_id INTEGER, -- Optional: if NULL, applies to all competitors
+    rule_type TEXT NOT NULL, -- 'severity', 'keyword'
+    rule_value TEXT NOT NULL, -- 'high', 'pricing'
+    action TEXT NOT NULL, -- 'email', 'webhook'
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(competitor_id) REFERENCES competitors(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS pages (

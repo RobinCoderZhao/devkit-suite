@@ -104,15 +104,28 @@ func (gp *GlobalPipeline) RunCheck(ctx context.Context) error {
 	}
 
 	for _, u := range users {
-		// Filter changes for this user's competitors
+		// 1. Filter changes for this user's competitors
 		userChanges := filterByUser(changesThisRound, u)
 		if len(userChanges) == 0 {
 			continue
 		}
 
+		// 2. Apply Smart Alerts Filtering
+		rules, err := gp.store.GetUserAlertRules(ctx, u.ID)
+		if err != nil {
+			gp.logger.Error("failed to get alert rules", "user", u.Email, "error", err)
+			continue
+		}
+
+		filteredUserChanges := filterByAlertRules(userChanges, rules)
+		if len(filteredUserChanges) == 0 {
+			gp.logger.Info("changes filtered out by smart alerts", "email", u.Email)
+			continue
+		}
+
 		// Compose one digest message (use WatchBot email formatter)
 		formatter := notify.NewWatchEmailFormatter()
-		msg := ComposeDigest(userChanges, u, formatter)
+		msg := ComposeDigest(filteredUserChanges, u, formatter)
 
 		// Send via email
 		if gp.dispatcher != nil && gp.dispatcher.EmailConfig().SMTPHost != "" {
@@ -120,7 +133,7 @@ func (gp *GlobalPipeline) RunCheck(ctx context.Context) error {
 			if err := emailNotifier.Send(ctx, msg); err != nil {
 				gp.logger.Error("email send failed", "email", u.Email, "error", err)
 			} else {
-				gp.logger.Info("digest sent", "email", u.Email, "changes", len(userChanges))
+				gp.logger.Info("digest sent", "email", u.Email, "changes", len(filteredUserChanges))
 			}
 		} else if len(gp.channels) > 0 {
 			// Fallback to dispatcher channels (Telegram)
@@ -304,6 +317,7 @@ func (gp *GlobalPipeline) checkPage(ctx context.Context, page PageWithMeta) (*Ch
 		Additions:      diff.Stats.Additions,
 		Deletions:      diff.Stats.Deletions,
 		CreatedAt:      time.Now(),
+		CompetitorID:   page.CompetitorID,
 		CompetitorName: page.CompetitorName,
 		PageURL:        page.URL,
 		PageType:       page.PageType,
@@ -399,4 +413,49 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen] + "\n... (truncated)"
+}
+
+// filterByAlertRules evaluates whether changes should trigger a notification based on user-defined Smart Alerts.
+// If the user has no active rules, we apply the default behavior: alert on everything.
+// If rules are defined, a change is included only if it matches at least one active rule.
+func filterByAlertRules(changes []Change, rules []AlertRule) []Change {
+	if len(rules) == 0 {
+		return changes // Default: no rules means notify on everything
+	}
+
+	var filtered []Change
+	for _, c := range changes {
+		matched := false
+		for _, r := range rules {
+			// Step 1: Check if rule applies to this competitor (if specified)
+			if r.CompetitorID != nil && *r.CompetitorID != c.CompetitorID {
+				continue // Skip: rule is for another competitor
+			}
+
+			// Step 2: Check rule logic
+			switch strings.ToLower(r.RuleType) {
+			case "severity":
+				// E.g. RuleValue == "critical|important" or exact match
+				targetSev := strings.ToLower(r.RuleValue)
+				changeSev := strings.ToLower(c.Severity)
+				if strings.Contains(targetSev, changeSev) || targetSev == changeSev {
+					matched = true
+				}
+			case "keyword":
+				keyword := strings.ToLower(r.RuleValue)
+				if strings.Contains(strings.ToLower(c.Analysis), keyword) ||
+					strings.Contains(strings.ToLower(c.DiffUnified), keyword) {
+					matched = true
+				}
+			}
+
+			if matched {
+				break // One matching rule is sufficient to trigger the alert for this change
+			}
+		}
+		if matched {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
 }

@@ -234,6 +234,7 @@ type Change struct {
 	Deletions int
 
 	// Populated by join for digest
+	CompetitorID   int
 	CompetitorName string
 	PageURL        string
 	PageType       string

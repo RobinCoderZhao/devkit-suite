@@ -1,0 +1,43 @@
+🔄 使用 rsync 同步了最新代码 (跳过 git pull)...
+🔨 重新构建 Go Services...
+📦 构建 Frontend (Next.js)...
+
+up to date, audited 740 packages in 15s
+
+238 packages are looking for funding
+  run `npm fund` for details
+
+16 vulnerabilities (3 moderate, 13 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> frontend@0.1.0 build
+> next build
+
+⚠ Invalid next.config.ts options detected: 
+⚠     Unrecognized key(s) in object: 'optimizeFonts'
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+▲ Next.js 16.1.6 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.9s
+  Running TypeScript ...
+Failed to compile.
+
+./next.config.ts:5:3
+Type error: Object literal may only specify known properties, and 'optimizeFonts' does not exist in type 'NextConfig'.
+
+[0m [90m 3 |[39m [36mconst[39m nextConfig[33m:[39m [33mNextConfig[39m [33m=[39m {
+ [90m 4 |[39m   [90m// Disable font optimization to prevent build failures on servers that cannot reach Google[39m
+[31m[1m>[22m[39m[90m 5 |[39m   optimizeFonts[33m:[39m [36mfalse[39m[33m,[39m
+ [90m   |[39m   [31m[1m^[22m[39m
+ [90m 6 |[39m }[33m;[39m
+ [90m 7 |[39m
+ [90m 8 |[39m [36mexport[39m [36mdefault[39m nextConfig[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null
