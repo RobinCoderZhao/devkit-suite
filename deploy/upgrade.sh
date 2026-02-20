@@ -7,9 +7,9 @@ set -euo pipefail
 
 APP_DIR="/opt/devkit-suite"
 
-echo "🔄 拉取最新代码..."
+echo "🔄 使用 rsync 同步了最新代码 (跳过 git pull)..."
 cd "${APP_DIR}"
-git pull
+# git pull
 
 echo "🔨 重新构建 Go Services..."
 /usr/local/go/bin/go build -trimpath -ldflags="-s -w" -o bin/newsbot ./cmd/newsbot

@@ -267,8 +267,9 @@ build_app() {
         REPO_URL="https://github.com/RobinCoderZhao/devkit-suite.git"
         mkdir -p "${APP_DIR}"
         if [ -d "${APP_DIR}/.git" ]; then
-            cd "${APP_DIR}" && git pull -q
-            log "代码已更新 (git pull)"
+            cd "${APP_DIR}"
+            # git pull -q
+            log "代码已上传 (跳过 git pull)"
         else
             git clone -q "${REPO_URL}" "${APP_DIR}"
             log "代码克隆完成"
@@ -455,19 +456,27 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=simple
+Type=oneshot
 User=${APP_USER}
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${ENV_FILE}
-ExecStart=${APP_DIR}/bin/newsbot serve
-Restart=always
-RestartSec=30
+ExecStart=${APP_DIR}/bin/newsbot run
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=newsbot
+EOF
+
+    cat > /etc/systemd/system/newsbot.timer << EOF
+[Unit]
+Description=Timer for NewsBot AI Daily Digest
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+OnCalendar=*-*-* 20:00:00
+Persistent=true
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=timers.target
 EOF
 
     cat > /etc/systemd/system/watchbot.service << EOF
@@ -556,7 +565,7 @@ EOF
 
     chown -R "${APP_USER}:${APP_USER}" "${APP_DIR}" "${DATA_DIR}" "${LOG_DIR}"
     systemctl daemon-reload
-    systemctl enable newsbot watchbot devkit-backup.timer
+    systemctl enable newsbot.timer watchbot devkit-api devkit-frontend devkit-backup.timer
     log "Systemd 服务配置完成"
 }
 
