@@ -7,16 +7,16 @@ import (
 )
 
 // ComposeDigest creates a single aggregated notification for a subscriber.
-// Uses the formatter adapter layer for channel-specific output.
-func ComposeDigest(changes []Change, subscriber SubscriberWithCompetitors, formatter notify.Formatter) notify.Message {
+// Uses the WatchBot formatter for channel-specific output.
+func ComposeDigest(changes []Change, subscriber SubscriberWithCompetitors, formatter *notify.WatchEmailFormatter) notify.Message {
 	if len(changes) == 0 {
 		return notify.Message{}
 	}
 
-	// Convert internal Change to adapter-layer ChangeItem
-	items := make([]notify.ChangeItem, len(changes))
+	// Convert internal Change to WatchBot formatter model
+	items := make([]notify.WatchChangeItem, len(changes))
 	for i, c := range changes {
-		items[i] = notify.ChangeItem{
+		items[i] = notify.WatchChangeItem{
 			CompetitorName: c.CompetitorName,
 			PageType:       c.PageType,
 			PageURL:        c.PageURL,
@@ -43,7 +43,7 @@ func ComposeDigest(changes []Change, subscriber SubscriberWithCompetitors, forma
 		}
 	}
 
-	data := notify.DigestData{
+	data := notify.WatchDigestData{
 		ChangeCount: len(changes),
 		Changes:     items,
 		Unchanged:   unchanged,

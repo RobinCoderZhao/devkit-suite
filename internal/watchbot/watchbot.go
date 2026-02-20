@@ -101,8 +101,8 @@ func (gp *GlobalPipeline) RunCheck(ctx context.Context) error {
 			continue
 		}
 
-		// Compose one digest message (use email formatter for rich HTML)
-		formatter := notify.NewEmailFormatter()
+		// Compose one digest message (use WatchBot email formatter)
+		formatter := notify.NewWatchEmailFormatter()
 		msg := ComposeDigest(userChanges, sub, formatter)
 
 		// Send via email
