@@ -121,14 +121,43 @@ func runOnce() error {
 
 	// 1. Initialize data sources (8 diverse AI news feeds)
 	registry := sources.NewRegistry()
-	registry.Register(sources.NewHackerNewsSource(30))
+	// === Major Tech Media (daily cadence, high volume) ===
 	registry.Register(sources.NewRSSSource("TechCrunch AI", "https://techcrunch.com/category/artificial-intelligence/feed/"))
-	registry.Register(sources.NewRSSSource("MIT Tech Review", "https://www.technologyreview.com/topic/artificial-intelligence/feed"))
 	registry.Register(sources.NewRSSSource("The Verge AI", "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"))
-	registry.Register(sources.NewRSSSource("Ars Technica AI", "https://feeds.arstechnica.com/arstechnica/technology-lab"))
 	registry.Register(sources.NewRSSSource("VentureBeat AI", "https://venturebeat.com/category/ai/feed/"))
+	registry.Register(sources.NewRSSSource("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"))
+	registry.Register(sources.NewRSSSource("Wired AI", "https://www.wired.com/feed/tag/ai/latest/rss"))
+	registry.Register(sources.NewRSSSource("CNBC Tech", "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910"))
+	registry.Register(sources.NewRSSSource("Reuters Tech", "https://www.reutersagency.com/feed/?best-topics=tech&post_type=best"))
+	registry.Register(sources.NewRSSSource("ZDNet AI", "https://www.zdnet.com/topic/artificial-intelligence/rss.xml"))
+
+	// === AI-focused publications (daily, specialized) ===
+	registry.Register(sources.NewRSSSource("MIT Tech Review", "https://www.technologyreview.com/topic/artificial-intelligence/feed"))
+	registry.Register(sources.NewRSSSource("The Information AI", "https://www.theinformation.com/feed"))
+	registry.Register(sources.NewRSSSource("AI News", "https://www.artificialintelligence-news.com/feed/"))
+	registry.Register(sources.NewRSSSource("Marktechpost", "https://www.marktechpost.com/feed/"))
+	registry.Register(sources.NewRSSSource("MarketsAndMarkets AI", "https://www.marketsandmarkets.com/rss/artificial-intelligence"))
+	registry.Register(sources.NewRSSSource("InfoQ AI/ML", "https://feed.infoq.com/ai-ml-data-eng/"))
+	registry.Register(sources.NewRSSSource("Analytics India", "https://analyticsindiamag.com/feed/"))
+
+	// === Community & Aggregators (high volume, diverse) ===
+	registry.Register(sources.NewHackerNewsSource(30))
+	registry.Register(sources.NewRSSSource("Lobsters AI", "https://lobste.rs/t/ai.rss"))
+	registry.Register(sources.NewRSSSource("Reddit ML", "https://www.reddit.com/r/MachineLearning/.rss"))
+	registry.Register(sources.NewRSSSource("Reddit LocalLLaMA", "https://www.reddit.com/r/LocalLLaMA/.rss"))
+
+	// === Company Blogs (lower frequency but authoritative) ===
 	registry.Register(sources.NewRSSSource("OpenAI Blog", "https://openai.com/blog/rss.xml"))
 	registry.Register(sources.NewRSSSource("Google AI Blog", "https://blog.google/technology/ai/rss/"))
+	registry.Register(sources.NewRSSSource("Anthropic News", "https://www.anthropic.com/rss.xml"))
+	registry.Register(sources.NewRSSSource("Meta AI Blog", "https://ai.meta.com/blog/rss/"))
+	registry.Register(sources.NewRSSSource("DeepMind Blog", "https://deepmind.google/blog/rss.xml"))
+	registry.Register(sources.NewRSSSource("Hugging Face Blog", "https://huggingface.co/blog/feed.xml"))
+
+	// === Chinese AI Media (中文来源) ===
+	registry.Register(sources.NewRSSSource("机器之心", "https://www.jiqizhixin.com/rss"))
+	registry.Register(sources.NewRSSSource("量子位", "https://www.qbitai.com/feed"))
+	registry.Register(sources.NewRSSSource("36Kr AI", "https://36kr.com/feed"))
 
 	// 2. Fetch articles
 	slog.Info("fetching articles from all sources")
