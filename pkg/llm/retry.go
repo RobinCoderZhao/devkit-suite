@@ -6,17 +6,28 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"math/rand"
+	"strings"
 	"time"
 )
 
-// retryClient wraps any Client with retry logic.
+// retryClient wraps any Client with exponential backoff retry logic.
+//
+// Backoff schedule (baseDelay=1s):
+//
+//	attempt 0 → 1s  (±25% jitter → 0.75s-1.25s)
+//	attempt 1 → 2s  (±25% jitter → 1.5s-2.5s)
+//	attempt 2 → 4s  (±25% jitter → 3.0s-5.0s)
+//	attempt 3 → 8s  (±25% jitter → 6.0s-10.0s)
+//	attempt 4 → 16s (±25% jitter → 12.0s-20.0s)
+//	capped at 60s
 type retryClient struct {
 	inner      Client
 	maxRetries int
 	baseDelay  time.Duration
 }
 
-// wrapWithRetry wraps a client with retry logic.
+// wrapWithRetry wraps a client with exponential backoff retry logic.
 func wrapWithRetry(client Client, maxRetries int) Client {
 	if maxRetries <= 1 {
 		return client
@@ -24,7 +35,7 @@ func wrapWithRetry(client Client, maxRetries int) Client {
 	return &retryClient{
 		inner:      client,
 		maxRetries: maxRetries,
-		baseDelay:  500 * time.Millisecond,
+		baseDelay:  1 * time.Second, // 1s base for 1s, 2s, 4s, 8s... progression
 	}
 }
 
@@ -33,6 +44,9 @@ func (r *retryClient) Generate(ctx context.Context, req *Request) (*Response, er
 	for attempt := 0; attempt < r.maxRetries; attempt++ {
 		resp, err := r.inner.Generate(ctx, req)
 		if err == nil {
+			if attempt > 0 {
+				slog.Info("LLM request succeeded after retry", "attempt", attempt+1)
+			}
 			return resp, nil
 		}
 		lastErr = err
@@ -42,10 +56,10 @@ func (r *retryClient) Generate(ctx context.Context, req *Request) (*Response, er
 		}
 
 		delay := r.backoffDelay(attempt)
-		slog.Warn("LLM request failed, retrying",
+		slog.Warn("LLM request failed, retrying with exponential backoff",
 			"attempt", attempt+1,
 			"max_retries", r.maxRetries,
-			"delay", delay,
+			"backoff", delay.Round(time.Millisecond),
 			"error", err,
 		)
 
@@ -78,37 +92,32 @@ func (r *retryClient) Close() error {
 	return r.inner.Close()
 }
 
+// backoffDelay calculates exponential backoff with ±25% jitter.
+// Formula: baseDelay * 2^attempt * (0.75 + rand(0, 0.5))
 func (r *retryClient) backoffDelay(attempt int) time.Duration {
-	delay := float64(r.baseDelay) * math.Pow(2, float64(attempt))
-	maxDelay := 30 * time.Second
-	if time.Duration(delay) > maxDelay {
+	base := float64(r.baseDelay) * math.Pow(2, float64(attempt))
+
+	// Add ±25% jitter to prevent thundering herd
+	jitter := 0.75 + rand.Float64()*0.5 // range [0.75, 1.25]
+	delay := time.Duration(base * jitter)
+
+	// Cap at 60 seconds
+	const maxDelay = 60 * time.Second
+	if delay > maxDelay {
 		return maxDelay
 	}
-	return time.Duration(delay)
+	return delay
 }
 
 // isRetryableError determines if an error is worth retrying.
+// Retries on: 429 (rate limit), 500/502/503 (server errors), timeouts, connection resets.
 func isRetryableError(err error) bool {
 	if err == nil {
 		return false
 	}
 	errStr := err.Error()
-	// Retry on rate limits, server errors, and timeouts
-	for _, keyword := range []string{"429", "500", "502", "503", "timeout", "connection reset"} {
-		if contains(errStr, keyword) {
-			return true
-		}
-	}
-	return false
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchString(s, substr)
-}
-
-func searchString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
+	for _, keyword := range []string{"429", "500", "502", "503", "timeout", "connection reset", "EOF", "high demand"} {
+		if strings.Contains(errStr, keyword) {
 			return true
 		}
 	}
