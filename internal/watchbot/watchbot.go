@@ -319,24 +319,26 @@ func (gp *GlobalPipeline) analyzeDiff(ctx context.Context, page PageWithMeta, di
 		return diff.Summary(), "important"
 	}
 
-	prompt := fmt.Sprintf(`你是竞品分析专家。以下是 "%s" (%s) 的页面变化：
+	prompt := fmt.Sprintf(`你是竞品监控分析师。请分析 "%s"（%s 页面）的最新变化。
 
-变化类型：%s
-新增 %d 行，删除 %d 行
+变更统计：新增 %d 行，删除 %d 行
 
-Diff:
+Diff 内容：
 %s
 
-请分析：
-1. 这个变化的含义是什么？
-2. 对我们的竞争策略有什么影响？
-3. 建议的应对措施
+请提取关键变化，要求：
+1. 【核心变化】用 2-4 个要点列出最重要的具体变化（如：新增了什么模型、价格如何调整、API 有什么更新）
+2. 【影响评级】CRITICAL（重大！价格/模型/API 重大变化）/ IMPORTANT（值得关注）/ MINOR（小调整）
 
-用简洁中文回答（150字以内）。同时在最后用一行标注严重性：CRITICAL / IMPORTANT / MINOR`,
+格式要求：
+- 每个要点一行，以 • 开头
+- 写明具体的数字、名称、版本号等关键信息
+- 不要写空泛的概括，要有信息量
+- 中文回答，总计 200 字以内
+- 最后一行单独写影响评级，如：影响评级：IMPORTANT`,
 		page.CompetitorName, page.PageType,
-		diff.Summary(),
 		diff.Stats.Additions, diff.Stats.Deletions,
-		truncate(diff.Unified, 3000),
+		truncate(diff.Unified, 4000),
 	)
 
 	resp, err := gp.llmClient.Generate(ctx, &llm.Request{
@@ -349,15 +351,27 @@ Diff:
 		return diff.Summary(), "important"
 	}
 
-	// Extract severity
+	// Extract severity from the last line "影响评级：XXX"
 	severity := "important"
 	content := resp.Content
-	for _, s := range []string{"CRITICAL", "IMPORTANT", "MINOR"} {
-		if strings.Contains(strings.ToUpper(content), s) {
-			severity = strings.ToLower(s)
-			break
+	lines := strings.Split(content, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.ToUpper(strings.TrimSpace(lines[i]))
+		if line == "" {
+			continue
 		}
+		for _, s := range []string{"CRITICAL", "IMPORTANT", "MINOR"} {
+			if strings.Contains(line, s) {
+				severity = strings.ToLower(s)
+				// Remove the severity line from the analysis content
+				lines = append(lines[:i], lines[i+1:]...)
+				content = strings.TrimSpace(strings.Join(lines, "\n"))
+				goto done
+			}
+		}
+		break // Stop scanning if last non-empty line doesn't contain severity
 	}
+done:
 	return content, severity
 }
 
