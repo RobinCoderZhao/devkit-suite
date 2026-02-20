@@ -65,9 +65,12 @@ devkit-suite/
 │   └── watchbot/main.go             // 产品 4
 ├── pkg/                             // 共享库（对外可用）
 │   ├── llm/                         // LLM 多模型封装
-│   ├── scraper/                     // 爬虫引擎
+│   ├── scraper/                     // 爬虫引擎（含 Jina Reader）
 │   ├── differ/                      // Diff 引擎
-│   ├── notify/                      // 通知（Telegram/Slack/Email/Webhook）
+│   ├── notify/                      // 通知（Email/Telegram/Webhook）
+│   ├── i18n/                        // 多语言 + IP 地理定位自动语言
+│   ├── benchmarks/                  // AI Benchmark Tracker
+│   │   └── parsers/                 // llm-stats.com 解析器
 │   └── storage/                     // 存储抽象层
 ├── internal/                        // 内部包（不对外暴露）
 │   ├── newsbot/                     // 产品 1 业务逻辑
