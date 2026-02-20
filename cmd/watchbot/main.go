@@ -16,7 +16,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
@@ -33,6 +32,7 @@ import (
 	"github.com/RobinCoderZhao/devkit-suite/pkg/llm"
 	"github.com/RobinCoderZhao/devkit-suite/pkg/notify"
 	"github.com/RobinCoderZhao/devkit-suite/pkg/scraper"
+	"github.com/RobinCoderZhao/devkit-suite/pkg/storage"
 )
 
 var version = "2.0.0"
@@ -50,12 +50,6 @@ func main() {
 		cmdRemove()
 	case "list":
 		cmdList()
-	case "subscribe":
-		cmdSubscribe()
-	case "unsubscribe":
-		cmdUnsubscribe()
-	case "subscribers":
-		cmdSubscribers()
 	case "check":
 		cmdCheck()
 	case "benchmark":
@@ -72,15 +66,12 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println(`WatchBot — 竞品监控 (V2)
+	fmt.Println(`WatchBot — 竞品监控 (SaaS 后端引擎)
 
 Usage:
-  watchbot add <url-or-text>                     添加监控目标
+  watchbot add <url-or-text>                     添加监控目标 (分配给本地默认用户)
   watchbot remove --name=<name>                  删除竞品
   watchbot list                                  列出所有竞品
-  watchbot subscribe --email=<e> --competitors=<names>  订阅
-  watchbot unsubscribe --email=<e>               取消订阅
-  watchbot subscribers                           列出订阅者
   watchbot check                                 运行一次全量检查
   watchbot benchmark [--output=png|html|text]    模型 Benchmark 对比
   watchbot serve                                 守护进程模式
@@ -89,19 +80,31 @@ Usage:
 
 // --- Database ---
 
-func openDB() (*sql.DB, *watchbot.Store) {
+func openDB() (*storage.DB, *watchbot.Store) {
 	dbPath := getEnv("WATCHBOT_DB", "data/watchbot.db")
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := storage.Open(storage.Config{Driver: storage.SQLite, DSN: dbPath})
 	if err != nil {
 		slog.Error("open database failed", "path", dbPath, "error", err)
 		os.Exit(1)
 	}
-	store := watchbot.NewStore(db)
-	ctx := context.Background()
-	if err := store.InitDB(ctx); err != nil {
-		slog.Error("init database failed", "error", err)
-		os.Exit(1)
+
+	// Auto-migrate schema on startup
+	schemaContent, err := os.ReadFile("pkg/storage/schema.sql")
+	if err == nil {
+		ctx := context.Background()
+		if err := db.Migrate(ctx, string(schemaContent)); err != nil {
+			slog.Error("schema migration failed", "error", err)
+			os.Exit(1)
+		}
+
+		// Ensure a default user exists for CLI operations
+		_, _ = db.ExecContext(ctx, `INSERT INTO users (id, email, password_hash, plan) VALUES (1, 'cli@local', 'cli_hash', 'pro') ON CONFLICT DO NOTHING`)
+	} else {
+		slog.Warn("schema.sql not found, skipping migration", "error", err)
 	}
+
+	store := watchbot.NewStore(db)
+
 	return db, store
 }
 
@@ -164,7 +167,7 @@ func cmdAdd() {
 		if name == "" {
 			name = domain
 		}
-		compID, _ := store.AddCompetitor(ctx, name, domain)
+		compID, _ := store.AddCompetitor(ctx, 1, name, domain) // Hardcode userID 1 for CLI
 		_, _ = store.AddPage(ctx, compID, vr.URL, pageType)
 		fmt.Printf("✅ 已添加: %s [%s] %s\n", name, pageType, vr.URL)
 	} else {
@@ -217,7 +220,7 @@ func cmdAdd() {
 		}
 
 		domain := watchbot.ExtractDomain(result.URLs[0])
-		compID, _ := store.AddCompetitor(ctx, result.Name, domain)
+		compID, _ := store.AddCompetitor(ctx, 1, result.Name, domain) // Hardcode userID 1
 		for _, u := range result.URLs {
 			pageType := watchbot.GuessPageType(u)
 			_, _ = store.AddPage(ctx, compID, u, pageType)
@@ -233,10 +236,10 @@ func cmdRemove() {
 		os.Exit(1)
 	}
 	ctx := context.Background()
-	db, store := openDB()
+	db, _ := openDB()
 	defer db.Close()
 
-	if err := store.RemoveCompetitor(ctx, name); err != nil {
+	if _, err := db.ExecContext(ctx, `DELETE FROM competitors WHERE name = ? COLLATE NOCASE`, name); err != nil {
 		fmt.Printf("❌ 删除失败: %v\n", err)
 		os.Exit(1)
 	}
@@ -248,7 +251,7 @@ func cmdList() {
 	db, store := openDB()
 	defer db.Close()
 
-	competitors, err := store.ListCompetitors(ctx)
+	competitors, err := store.ListCompetitorsByUser(ctx, 1) // Hardcode userID 1
 	if err != nil {
 		slog.Error("list failed", "error", err)
 		os.Exit(1)
@@ -259,97 +262,25 @@ func cmdList() {
 		return
 	}
 
-	fmt.Printf("监控目标 (%d):\n\n", len(competitors))
+	fmt.Printf("本地用户(ID=1) 的监控目标 (%d):\n\n", len(competitors))
 	for i, c := range competitors {
 		fmt.Printf("  %d. %s (%s)\n", i+1, c.Name, c.Domain)
-		pages, _ := store.GetPagesByCompetitor(ctx, c.ID)
-		for _, p := range pages {
-			status := "✅"
-			if p.Status != "active" {
-				status = "⏸️"
-			}
+
+		// Query pages manually since we removed it from store.go
+		rows, _ := db.QueryContext(ctx, `SELECT url, page_type, last_checked_at FROM pages WHERE competitor_id = ?`, c.ID)
+		for rows.Next() {
+			var url, pageType string
+			var lastChecked *time.Time
+			_ = rows.Scan(&url, &pageType, &lastChecked)
+
 			checked := "未检查"
-			if p.LastChecked != nil {
-				checked = p.LastChecked.Format("2006-01-02 15:04")
+			if lastChecked != nil {
+				checked = lastChecked.Format("2006-01-02 15:04")
 			}
-			fmt.Printf("     %s [%s] %s (最后检查: %s)\n", status, p.PageType, p.URL, checked)
+			fmt.Printf("     ✅ [%s] %s (最后检查: %s)\n", pageType, url, checked)
 		}
+		rows.Close()
 		fmt.Println()
-	}
-}
-
-func cmdSubscribe() {
-	email := getFlag("--email")
-	competitors := getFlag("--competitors")
-	if email == "" || competitors == "" {
-		fmt.Println("Usage: watchbot subscribe --email=<email> --competitors=<name1,name2,...>")
-		os.Exit(1)
-	}
-
-	ctx := context.Background()
-	db, store := openDB()
-	defer db.Close()
-
-	subID, err := store.AddSubscriber(ctx, email)
-	if err != nil {
-		fmt.Printf("❌ 添加订阅者失败: %v\n", err)
-		os.Exit(1)
-	}
-
-	names := strings.Split(competitors, ",")
-	for _, name := range names {
-		name = strings.TrimSpace(name)
-		comp, err := store.GetCompetitor(ctx, name)
-		if err != nil || comp == nil {
-			fmt.Printf("⚠️ 竞品 \"%s\" 不存在，跳过\n", name)
-			continue
-		}
-		if err := store.Subscribe(ctx, subID, comp.ID); err != nil {
-			fmt.Printf("⚠️ 订阅 \"%s\" 失败: %v\n", name, err)
-			continue
-		}
-		fmt.Printf("  ✅ %s\n", name)
-	}
-	fmt.Printf("\n📧 已订阅: %s\n", email)
-}
-
-func cmdUnsubscribe() {
-	email := getFlag("--email")
-	if email == "" {
-		fmt.Println("Usage: watchbot unsubscribe --email=<email>")
-		os.Exit(1)
-	}
-
-	ctx := context.Background()
-	db, store := openDB()
-	defer db.Close()
-
-	if err := store.RemoveSubscriber(ctx, email); err != nil {
-		fmt.Printf("❌ 取消订阅失败: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("✅ 已取消订阅: %s\n", email)
-}
-
-func cmdSubscribers() {
-	ctx := context.Background()
-	db, store := openDB()
-	defer db.Close()
-
-	subs, err := store.ListSubscribers(ctx)
-	if err != nil {
-		slog.Error("list subscribers failed", "error", err)
-		os.Exit(1)
-	}
-
-	if len(subs) == 0 {
-		fmt.Println("暂无订阅者。使用 watchbot subscribe 添加。")
-		return
-	}
-
-	fmt.Printf("订阅者 (%d):\n\n", len(subs))
-	for _, s := range subs {
-		fmt.Printf("  📧 %s → %s\n", s.Email, strings.Join(s.CompetitorNames, ", "))
 	}
 }
 
@@ -410,7 +341,7 @@ func cmdServe() {
 	defer db.Close()
 
 	// ---- Benchmark Tracker background thread ----
-	bStore, err := benchmarks.NewStore(db)
+	bStore, err := benchmarks.NewStore(db.DB)
 	if err == nil {
 		configPath := getEnv("BENCHMARK_CONFIG", "config/benchmark_models.yaml")
 		cfg, _ := benchmarks.LoadConfig(configPath)
@@ -479,7 +410,7 @@ func cmdBenchmark() {
 	defer db.Close()
 
 	// Init benchmark store
-	bStore, err := benchmarks.NewStore(db)
+	bStore, err := benchmarks.NewStore(db.DB)
 	if err != nil {
 		slog.Error("init benchmark store", "error", err)
 		os.Exit(1)

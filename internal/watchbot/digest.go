@@ -6,9 +6,9 @@ import (
 	"github.com/RobinCoderZhao/devkit-suite/pkg/notify"
 )
 
-// ComposeDigest creates a single aggregated notification for a subscriber.
+// ComposeDigest creates a single aggregated notification for a user.
 // Changes are grouped by competitor for better readability.
-func ComposeDigest(changes []Change, subscriber SubscriberWithCompetitors, formatter *notify.WatchEmailFormatter) notify.Message {
+func ComposeDigest(changes []Change, user UserWithCompetitors, formatter *notify.WatchEmailFormatter) notify.Message {
 	if len(changes) == 0 {
 		return notify.Message{}
 	}
@@ -37,7 +37,7 @@ func ComposeDigest(changes []Change, subscriber SubscriberWithCompetitors, forma
 	}
 	var unchanged []string
 	seen := make(map[string]bool)
-	for _, name := range subscriber.CompetitorNames {
+	for _, name := range user.CompetitorNames {
 		if !changedCompNames[name] && !seen[name] {
 			unchanged = append(unchanged, name)
 			seen[name] = true
@@ -48,7 +48,7 @@ func ComposeDigest(changes []Change, subscriber SubscriberWithCompetitors, forma
 		ChangeCount: len(changes),
 		Groups:      groups,
 		Unchanged:   unchanged,
-		Date:        strings.Split(changes[0].DetectedAt.String(), " ")[0],
+		Date:        strings.Split(changes[0].CreatedAt.String(), " ")[0],
 	}
 
 	return formatter.Format(data)

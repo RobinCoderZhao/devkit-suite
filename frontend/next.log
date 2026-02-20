@@ -1,0 +1,88 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.7:3000
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1116ms
+○ Compiling / ...
+ GET / 200 in 5.8s (compile: 5.5s, render: 247ms)
+✓ Compiled in 331ms
+ GET / 200 in 320ms (compile: 68ms, render: 253ms)
+ GET / 200 in 207ms (compile: 9ms, render: 199ms)
+ GET / 200 in 188ms (compile: 4ms, render: 185ms)
+ GET / 200 in 166ms (compile: 4ms, render: 162ms)
+ GET / 200 in 187ms (compile: 3ms, render: 184ms)
+ GET / 200 in 173ms (compile: 3ms, render: 170ms)
+ GET / 200 in 156ms (compile: 3ms, render: 153ms)
+ GET / 200 in 146ms (compile: 3ms, render: 143ms)
+ GET / 200 in 152ms (compile: 8ms, render: 145ms)
+ GET / 200 in 127ms (compile: 2ms, render: 125ms)
+ GET / 200 in 107ms (compile: 1805µs, render: 105ms)
+ GET / 200 in 89ms (compile: 2ms, render: 86ms)
+ GET / 200 in 69ms (compile: 3ms, render: 66ms)
+ GET / 200 in 48ms (compile: 7ms, render: 41ms)
+✓ Compiled in 143ms
+ GET / 200 in 287ms (compile: 102ms, render: 184ms)
+ GET / 200 in 116ms (compile: 8ms, render: 108ms)
+ GET / 200 in 88ms (compile: 1666µs, render: 86ms)
+ GET / 200 in 104ms (compile: 1962µs, render: 102ms)
+ GET / 200 in 103ms (compile: 1515µs, render: 101ms)
+ GET / 200 in 89ms (compile: 1851µs, render: 87ms)
+ GET / 200 in 109ms (compile: 1359µs, render: 108ms)
+ GET / 200 in 114ms (compile: 1588µs, render: 112ms)
+ GET / 200 in 116ms (compile: 1711µs, render: 115ms)
+ GET / 200 in 116ms (compile: 2ms, render: 114ms)
+ GET / 200 in 118ms (compile: 6ms, render: 113ms)
+ GET / 200 in 95ms (compile: 1776µs, render: 93ms)
+ GET / 200 in 80ms (compile: 2ms, render: 78ms)
+ GET / 200 in 61ms (compile: 1540µs, render: 59ms)
+ GET / 200 in 44ms (compile: 1670µs, render: 43ms)
+ GET / 200 in 24ms (compile: 1828µs, render: 23ms)
+ GET / 200 in 168ms (compile: 58ms, render: 110ms)
+ GET / 200 in 93ms (compile: 1340µs, render: 92ms)
+ GET / 200 in 113ms (compile: 2ms, render: 111ms)
+ GET / 200 in 103ms (compile: 1230µs, render: 102ms)
+ GET / 200 in 120ms (compile: 1683µs, render: 118ms)
+ GET / 200 in 116ms (compile: 1572µs, render: 114ms)
+ GET / 200 in 112ms (compile: 1164µs, render: 111ms)
+ GET / 200 in 98ms (compile: 1709µs, render: 96ms)
+ GET / 200 in 89ms (compile: 4ms, render: 85ms)
+ GET / 200 in 68ms (compile: 2ms, render: 66ms)
+ GET / 200 in 85ms (compile: 1252µs, render: 84ms)
+ GET / 200 in 90ms (compile: 1012µs, render: 89ms)
+ GET / 200 in 102ms (compile: 1716µs, render: 100ms)
+ GET / 200 in 90ms (compile: 1954µs, render: 88ms)
+ GET / 200 in 75ms (compile: 1943µs, render: 73ms)
+ GET / 200 in 60ms (compile: 1664µs, render: 59ms)
+ GET / 200 in 44ms (compile: 2ms, render: 41ms)
+ GET / 200 in 26ms (compile: 4ms, render: 22ms)
+ GET /register 200 in 692ms (compile: 573ms, render: 119ms)
+ GET /register 200 in 97ms (compile: 13ms, render: 84ms)
+ GET /login 200 in 532ms (compile: 463ms, render: 68ms)
+ GET / 200 in 128ms (compile: 9ms, render: 119ms)
+ GET /register 200 in 160ms (compile: 52ms, render: 108ms)
+ GET /register 200 in 57ms (compile: 4ms, render: 53ms)
+ GET /register 200 in 39ms (compile: 4ms, render: 35ms)
+ GET /api/health 404 in 748ms (compile: 658ms, render: 90ms)
+ GET /register 200 in 129ms (compile: 61ms, render: 67ms)
+ GET /onboarding 200 in 417ms (compile: 393ms, render: 24ms)
+ GET /dashboard 200 in 537ms (compile: 475ms, render: 62ms)
+ GET /dashboard 200 in 198ms (compile: 8ms, render: 190ms)
+ GET /login 200 in 95ms (compile: 13ms, render: 82ms)
+ GET /register 200 in 68ms (compile: 9ms, render: 59ms)
+ GET /onboarding 200 in 142ms (compile: 25ms, render: 118ms)
+ GET /dashboard 200 in 35ms (compile: 4ms, render: 31ms)
+ GET /onboarding 200 in 140ms (compile: 37ms, render: 103ms)
+ GET /dashboard 200 in 181ms (compile: 43ms, render: 138ms)
+ GET /dashboard 200 in 104ms (compile: 11ms, render: 92ms)
+ GET /dashboard/watchbot/3 200 in 1414ms (compile: 1279ms, render: 135ms)
+ GET /dashboard/newsbot 200 in 630ms (compile: 476ms, render: 154ms)

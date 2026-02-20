@@ -7,6 +7,7 @@ package watchbot
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -97,42 +98,42 @@ func (gp *GlobalPipeline) RunCheck(ctx context.Context) error {
 	_ = gp.store.SetMeta(ctx, "last_change_at", time.Now().Format(time.RFC3339))
 
 	// Phase 2: Per-user aggregated notifications
-	subscribers, err := gp.store.GetActiveSubscribers(ctx)
+	users, err := gp.store.GetUsersWithCompetitors(ctx)
 	if err != nil {
-		return fmt.Errorf("get subscribers: %w", err)
+		return fmt.Errorf("get users: %w", err)
 	}
 
-	for _, sub := range subscribers {
-		// Filter changes for this subscriber's competitors
-		userChanges := filterBySubscription(changesThisRound, sub)
+	for _, u := range users {
+		// Filter changes for this user's competitors
+		userChanges := filterByUser(changesThisRound, u)
 		if len(userChanges) == 0 {
 			continue
 		}
 
 		// Compose one digest message (use WatchBot email formatter)
 		formatter := notify.NewWatchEmailFormatter()
-		msg := ComposeDigest(userChanges, sub, formatter)
+		msg := ComposeDigest(userChanges, u, formatter)
 
 		// Send via email
 		if gp.dispatcher != nil && gp.dispatcher.EmailConfig().SMTPHost != "" {
-			emailNotifier := notify.NewEmailNotifierForRecipient(gp.dispatcher.EmailConfig(), sub.Email)
+			emailNotifier := notify.NewEmailNotifierForRecipient(gp.dispatcher.EmailConfig(), u.Email)
 			if err := emailNotifier.Send(ctx, msg); err != nil {
-				gp.logger.Error("email send failed", "email", sub.Email, "error", err)
+				gp.logger.Error("email send failed", "email", u.Email, "error", err)
 			} else {
-				gp.logger.Info("digest sent", "email", sub.Email, "changes", len(userChanges))
+				gp.logger.Info("digest sent", "email", u.Email, "changes", len(userChanges))
 			}
 		} else if len(gp.channels) > 0 {
 			// Fallback to dispatcher channels (Telegram)
 			if err := gp.dispatcher.Dispatch(ctx, gp.channels, msg); err != nil {
-				gp.logger.Error("notify failed", "email", sub.Email, "error", err)
+				gp.logger.Error("notify failed", "email", u.Email, "error", err)
 			}
 		} else {
 			// stdout fallback
-			fmt.Printf("\n📧 → %s\n%s\n", sub.Email, msg.Body)
+			fmt.Printf("\n📧 → %s\n%s\n", u.Email, msg.Body)
 		}
 	}
 
-	gp.logger.Info("phase 2 complete", "subscribers_notified", len(subscribers))
+	gp.logger.Info("phase 2 complete", "users_notified", len(users))
 	return nil
 }
 
@@ -169,49 +170,45 @@ func (gp *GlobalPipeline) maybeHeartbeat(ctx context.Context) {
 		}
 	}
 
-	// Send heartbeat to all subscribers
-	subscribers, err := gp.store.GetActiveSubscribers(ctx)
-	if err != nil || len(subscribers) == 0 {
+	// Send heartbeat to all users
+	users, err := gp.store.GetUsersWithCompetitors(ctx)
+	if err != nil || len(users) == 0 {
 		return
 	}
 
-	// Build competitor list for the heartbeat message
-	competitors, _ := gp.store.ListCompetitors(ctx)
-	var compNames []string
-	for _, c := range competitors {
-		compNames = append(compNames, c.Name)
-	}
-
 	now := time.Now()
-	msg := notify.Message{
-		Title: fmt.Sprintf("🔍 WatchBot 周报 — %s", now.Format("2006-01-02")),
-		Body: fmt.Sprintf(
-			"📋 竞品监控服务运行正常\n\n"+
-				"最近一周（%s ~ %s），您所监控的竞品网站没有检测到变化：\n\n"+
-				"监控对象：%s\n\n"+
-				"✅ 服务运行正常，WatchBot 每天 3 次（00:00 / 08:00 / 16:00）自动检查以上竞品页面。\n"+
-				"一旦检测到任何变化（定价调整、功能更新、API 变更等），将立即发送详细变更报告到您的邮箱。\n\n"+
-				"— DevKit Suite WatchBot",
-			now.AddDate(0, 0, -7).Format("01月02日"),
-			now.Format("01月02日"),
-			strings.Join(compNames, "、"),
-		),
-	}
+	for _, u := range users {
+		if len(u.CompetitorNames) == 0 {
+			continue
+		}
+		msg := notify.Message{
+			Title: fmt.Sprintf("🔍 WatchBot 周报 — %s", now.Format("2006-01-02")),
+			Body: fmt.Sprintf(
+				"📋 竞品监控服务运行正常\n\n"+
+					"最近一周（%s ~ %s），您所监控的竞品网站没有检测到变化：\n\n"+
+					"监控对象：%s\n\n"+
+					"✅ 服务运行正常，WatchBot 每天 3 次（00:00 / 08:00 / 16:00）自动检查以上竞品页面。\n"+
+					"一旦检测到任何变化（定价调整、功能更新、API 变更等），将立即发送详细变更报告到您的邮箱。\n\n"+
+					"— DevKit Suite WatchBot",
+				now.AddDate(0, 0, -7).Format("01月02日"),
+				now.Format("01月02日"),
+				strings.Join(u.CompetitorNames, "、"),
+			),
+		}
 
-	for _, sub := range subscribers {
 		if gp.dispatcher != nil && gp.dispatcher.EmailConfig().SMTPHost != "" {
-			emailNotifier := notify.NewEmailNotifierForRecipient(gp.dispatcher.EmailConfig(), sub.Email)
+			emailNotifier := notify.NewEmailNotifierForRecipient(gp.dispatcher.EmailConfig(), u.Email)
 			if err := emailNotifier.Send(ctx, msg); err != nil {
-				gp.logger.Error("heartbeat send failed", "email", sub.Email, "error", err)
+				gp.logger.Error("heartbeat send failed", "email", u.Email, "error", err)
 			} else {
-				gp.logger.Info("weekly heartbeat sent", "email", sub.Email)
+				gp.logger.Info("weekly heartbeat sent", "email", u.Email)
 			}
 		}
 	}
 
 	// Record that we sent the heartbeat
 	_ = gp.store.SetMeta(ctx, "last_heartbeat_at", now.Format(time.RFC3339))
-	gp.logger.Info("weekly heartbeat complete", "subscribers", len(subscribers))
+	gp.logger.Info("weekly heartbeat complete", "users", len(users))
 }
 
 // checkPage fetches a page, diffs against latest snapshot, and returns a Change if detected.
@@ -299,17 +296,18 @@ func (gp *GlobalPipeline) checkPage(ctx context.Context, page PageWithMeta) (*Ch
 	return &Change{
 		ID:             changeID,
 		PageID:         page.ID,
-		OldSnapshotID:  oldSnapID,
+		OldSnapshotID:  sql.NullInt64{Int64: int64(oldSnapID), Valid: oldSnapID > 0},
 		NewSnapshotID:  newSnapID,
 		Severity:       severity,
 		Analysis:       analysis,
 		DiffUnified:    diff.Unified,
 		Additions:      diff.Stats.Additions,
 		Deletions:      diff.Stats.Deletions,
-		DetectedAt:     time.Now(),
+		CreatedAt:      time.Now(),
 		CompetitorName: page.CompetitorName,
 		PageURL:        page.URL,
 		PageType:       page.PageType,
+		UserID:         page.UserID,
 	}, nil
 }
 
@@ -381,15 +379,15 @@ done:
 	return content, severity
 }
 
-// filterBySubscription filters changes to only those for a subscriber's competitors.
-func filterBySubscription(changes []Change, sub SubscriberWithCompetitors) []Change {
+// filterByUser filters changes to only those for a user's competitors.
+func filterByUser(changes []Change, user UserWithCompetitors) []Change {
 	compNames := make(map[string]bool)
-	for _, name := range sub.CompetitorNames {
+	for _, name := range user.CompetitorNames {
 		compNames[name] = true
 	}
 	var result []Change
 	for _, c := range changes {
-		if compNames[c.CompetitorName] {
+		if compNames[c.CompetitorName] && c.UserID == user.ID {
 			result = append(result, c)
 		}
 	}

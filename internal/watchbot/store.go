@@ -7,102 +7,48 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/RobinCoderZhao/devkit-suite/pkg/storage"
 )
 
-// Store provides SQLite-based persistence for WatchBot.
+// Store provides persistence for WatchBot using the common storage layer.
 type Store struct {
-	db *sql.DB
+	db *storage.DB
 }
 
-// NewStore creates a new store with the given SQLite database.
-func NewStore(db *sql.DB) *Store {
+// NewStore creates a new store with the given storage database.
+func NewStore(db *storage.DB) *Store {
 	return &Store{db: db}
-}
-
-// InitDB creates all required tables.
-func (s *Store) InitDB(ctx context.Context) error {
-	queries := []string{
-		`CREATE TABLE IF NOT EXISTS competitors (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			name       TEXT NOT NULL,
-			domain     TEXT NOT NULL UNIQUE,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE TABLE IF NOT EXISTS pages (
-			id              INTEGER PRIMARY KEY AUTOINCREMENT,
-			competitor_id   INTEGER NOT NULL REFERENCES competitors(id) ON DELETE CASCADE,
-			url             TEXT NOT NULL UNIQUE,
-			page_type       TEXT NOT NULL DEFAULT 'general',
-			check_interval  INTEGER DEFAULT 86400,
-			last_checked    TIMESTAMP,
-			status          TEXT DEFAULT 'active',
-			UNIQUE(competitor_id, url)
-		)`,
-		`CREATE TABLE IF NOT EXISTS snapshots (
-			id          INTEGER PRIMARY KEY AUTOINCREMENT,
-			page_id     INTEGER NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
-			content     TEXT NOT NULL,
-			checksum    TEXT NOT NULL,
-			captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE INDEX IF NOT EXISTS idx_snapshots_page_time ON snapshots(page_id, captured_at DESC)`,
-		`CREATE TABLE IF NOT EXISTS changes (
-			id              INTEGER PRIMARY KEY AUTOINCREMENT,
-			page_id         INTEGER NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
-			old_snapshot_id INTEGER REFERENCES snapshots(id),
-			new_snapshot_id INTEGER REFERENCES snapshots(id),
-			severity        TEXT DEFAULT 'important',
-			analysis        TEXT,
-			diff_unified    TEXT,
-			diff_additions  INTEGER DEFAULT 0,
-			diff_deletions  INTEGER DEFAULT 0,
-			detected_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE TABLE IF NOT EXISTS subscribers (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			email      TEXT NOT NULL UNIQUE,
-			active     INTEGER DEFAULT 1,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE TABLE IF NOT EXISTS subscriptions (
-			subscriber_id INTEGER NOT NULL REFERENCES subscribers(id) ON DELETE CASCADE,
-			competitor_id INTEGER NOT NULL REFERENCES competitors(id) ON DELETE CASCADE,
-			notify_level  TEXT DEFAULT 'all',
-			PRIMARY KEY(subscriber_id, competitor_id)
-		)`,
-	}
-	for _, q := range queries {
-		if _, err := s.db.ExecContext(ctx, q); err != nil {
-			return fmt.Errorf("init table: %w", err)
-		}
-	}
-	return nil
 }
 
 // --- Competitors ---
 
-// Competitor represents a monitored competitor.
+// Competitor represents a monitored competitor for a specific user.
 type Competitor struct {
 	ID        int
+	UserID    int
 	Name      string
 	Domain    string
 	CreatedAt time.Time
 }
 
-// AddCompetitor inserts or returns existing competitor. Returns the competitor ID.
-func (s *Store) AddCompetitor(ctx context.Context, name, domain string) (int, error) {
+// AddCompetitor inserts or returns an existing competitor for a user.
+func (s *Store) AddCompetitor(ctx context.Context, userID int, name, domain string) (int, error) {
 	domain = strings.TrimSpace(strings.ToLower(domain))
-	// Try insert
+
+	// PostgreSQL and SQLite have different upsert syntaxes if returning ID.
+	// For simplicity, handle insert and then fallback to select.
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO competitors (name, domain) VALUES (?, ?) ON CONFLICT(domain) DO UPDATE SET name=excluded.name`,
-		name, domain)
+		`INSERT INTO competitors (user_id, name, domain) VALUES (?, ?, ?) 
+		 ON CONFLICT(user_id, domain) DO UPDATE SET name=excluded.name`,
+		userID, name, domain)
 	if err != nil {
 		return 0, fmt.Errorf("add competitor: %w", err)
 	}
+
 	id, _ := res.LastInsertId()
 	if id == 0 {
-		// Already existed, fetch ID
-		row := s.db.QueryRowContext(ctx, `SELECT id FROM competitors WHERE domain = ?`, domain)
+		row := s.db.QueryRowContext(ctx, `SELECT id FROM competitors WHERE user_id = ? AND domain = ?`, userID, domain)
 		if err := row.Scan(&id); err != nil {
 			return 0, err
 		}
@@ -110,12 +56,12 @@ func (s *Store) AddCompetitor(ctx context.Context, name, domain string) (int, er
 	return int(id), nil
 }
 
-// GetCompetitor returns a competitor by name.
-func (s *Store) GetCompetitor(ctx context.Context, name string) (*Competitor, error) {
+// GetCompetitor returns a competitor for a user by name.
+func (s *Store) GetCompetitor(ctx context.Context, userID int, name string) (*Competitor, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, name, domain, created_at FROM competitors WHERE name = ? COLLATE NOCASE`, name)
+		`SELECT id, user_id, name, domain, created_at FROM competitors WHERE user_id = ? AND name = ? COLLATE NOCASE`, userID, name)
 	c := &Competitor{}
-	if err := row.Scan(&c.ID, &c.Name, &c.Domain, &c.CreatedAt); err != nil {
+	if err := row.Scan(&c.ID, &c.UserID, &c.Name, &c.Domain, &c.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -124,10 +70,10 @@ func (s *Store) GetCompetitor(ctx context.Context, name string) (*Competitor, er
 	return c, nil
 }
 
-// ListCompetitors returns all competitors with their page count.
-func (s *Store) ListCompetitors(ctx context.Context) ([]Competitor, error) {
+// ListCompetitorsByUser returns all competitors for a specific user.
+func (s *Store) ListCompetitorsByUser(ctx context.Context, userID int) ([]Competitor, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, name, domain, created_at FROM competitors ORDER BY name`)
+		`SELECT id, user_id, name, domain, created_at FROM competitors WHERE user_id = ? ORDER BY name`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -135,18 +81,12 @@ func (s *Store) ListCompetitors(ctx context.Context) ([]Competitor, error) {
 	var result []Competitor
 	for rows.Next() {
 		var c Competitor
-		if err := rows.Scan(&c.ID, &c.Name, &c.Domain, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.UserID, &c.Name, &c.Domain, &c.CreatedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, c)
 	}
 	return result, nil
-}
-
-// RemoveCompetitor deletes a competitor and all related data (cascade).
-func (s *Store) RemoveCompetitor(ctx context.Context, name string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM competitors WHERE name = ? COLLATE NOCASE`, name)
-	return err
 }
 
 // --- Pages ---
@@ -157,44 +97,72 @@ type Page struct {
 	CompetitorID  int
 	URL           string
 	PageType      string
-	CheckInterval int
-	LastChecked   *time.Time
-	Status        string
+	LastCheckedAt *time.Time
+	CreatedAt     time.Time
 }
 
-// PageWithMeta includes competitor info for pipeline use.
+// PageWithMeta includes competitor/user info for pipeline use.
 type PageWithMeta struct {
 	Page
 	CompetitorName   string
 	CompetitorDomain string
+	UserID           int
+	UserEmail        string
 }
 
 // AddPage inserts a page for a competitor.
 func (s *Store) AddPage(ctx context.Context, competitorID int, url, pageType string) (int, error) {
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO pages (competitor_id, url, page_type) VALUES (?, ?, ?) ON CONFLICT(url) DO NOTHING`,
+		`INSERT INTO pages (competitor_id, url, page_type) VALUES (?, ?, ?)`,
 		competitorID, url, pageType)
 	if err != nil {
+		// Ignore constraint failures (URL already exists for this competitor)
+		// SQLite: UNIQUE constraint failed, Postgres: unique_violation
+		if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "unique") {
+			row := s.db.QueryRowContext(ctx, `SELECT id FROM pages WHERE url = ? AND competitor_id = ?`, url, competitorID)
+			var id int64
+			if err := row.Scan(&id); err != nil {
+				return 0, err
+			}
+			return int(id), nil
+		}
 		return 0, fmt.Errorf("add page: %w", err)
 	}
 	id, _ := res.LastInsertId()
-	if id == 0 {
-		row := s.db.QueryRowContext(ctx, `SELECT id FROM pages WHERE url = ?`, url)
-		if err := row.Scan(&id); err != nil {
-			return 0, err
-		}
-	}
 	return int(id), nil
 }
 
-// GetAllActivePages returns all active pages with competitor metadata.
+// GetPagesByCompetitor retrieves all pages tracked for a specific competitor.
+func (s *Store) GetPagesByCompetitor(ctx context.Context, competitorID int) ([]Page, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, competitor_id, url, page_type, last_checked_at, created_at FROM pages WHERE competitor_id = ?`,
+		competitorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []Page
+	for rows.Next() {
+		var p Page
+		if err := rows.Scan(&p.ID, &p.CompetitorID, &p.URL, &p.PageType, &p.LastCheckedAt, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		result = append(result, p)
+	}
+	return result, nil
+}
+
+// GetAllActivePages retrieves all monitored pages (Phase 1 simplistic pipeline logic).
+// This is used by the global pipeline to fetch all URLs that need checking.
 func (s *Store) GetAllActivePages(ctx context.Context) ([]PageWithMeta, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT p.id, p.competitor_id, p.url, p.page_type, p.check_interval, p.last_checked, p.status,
-		       c.name, c.domain
+		SELECT p.id, p.competitor_id, p.url, p.page_type, p.last_checked_at, p.created_at,
+		       c.name, c.domain, c.user_id,
+		       u.email
 		FROM pages p
 		JOIN competitors c ON c.id = p.competitor_id
-		WHERE p.status = 'active'
+		JOIN users u ON u.id = c.user_id
 		ORDER BY p.id`)
 	if err != nil {
 		return nil, err
@@ -204,9 +172,9 @@ func (s *Store) GetAllActivePages(ctx context.Context) ([]PageWithMeta, error) {
 	for rows.Next() {
 		var pm PageWithMeta
 		if err := rows.Scan(
-			&pm.ID, &pm.CompetitorID, &pm.URL, &pm.PageType,
-			&pm.CheckInterval, &pm.LastChecked, &pm.Status,
-			&pm.CompetitorName, &pm.CompetitorDomain,
+			&pm.ID, &pm.CompetitorID, &pm.URL, &pm.PageType, &pm.LastCheckedAt, &pm.CreatedAt,
+			&pm.CompetitorName, &pm.CompetitorDomain, &pm.UserID,
+			&pm.UserEmail,
 		); err != nil {
 			return nil, err
 		}
@@ -215,30 +183,10 @@ func (s *Store) GetAllActivePages(ctx context.Context) ([]PageWithMeta, error) {
 	return result, nil
 }
 
-// GetPagesByCompetitor returns all pages for a given competitor.
-func (s *Store) GetPagesByCompetitor(ctx context.Context, competitorID int) ([]Page, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, competitor_id, url, page_type, check_interval, last_checked, status
-		 FROM pages WHERE competitor_id = ? ORDER BY page_type`, competitorID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var result []Page
-	for rows.Next() {
-		var p Page
-		if err := rows.Scan(&p.ID, &p.CompetitorID, &p.URL, &p.PageType, &p.CheckInterval, &p.LastChecked, &p.Status); err != nil {
-			return nil, err
-		}
-		result = append(result, p)
-	}
-	return result, nil
-}
-
-// UpdateLastChecked updates the last_checked timestamp for a page.
+// UpdateLastChecked updates the last_checked_at timestamp for a page.
 func (s *Store) UpdateLastChecked(ctx context.Context, pageID int) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE pages SET last_checked = CURRENT_TIMESTAMP WHERE id = ?`, pageID)
+		`UPDATE pages SET last_checked_at = CURRENT_TIMESTAMP WHERE id = ?`, pageID)
 	return err
 }
 
@@ -268,33 +216,41 @@ func (s *Store) GetLatestSnapshot(ctx context.Context, pageID int) (id int, cont
 	return
 }
 
-// --- Changes ---
+// --- Analyses (formerly Changes) ---
 
-// Change represents a detected change record.
+// Change represents a detected change record (mapped to analyses table).
 type Change struct {
 	ID            int
 	PageID        int
-	OldSnapshotID int
+	OldSnapshotID sql.NullInt64 // Can be null for first snapshot
 	NewSnapshotID int
 	Severity      string
 	Analysis      string
 	DiffUnified   string
-	Additions     int
-	Deletions     int
-	DetectedAt    time.Time
+	CreatedAt     time.Time
+
+	// Synthesized fields for diff stats (extract from DiffUnified or add to schema later)
+	Additions int
+	Deletions int
 
 	// Populated by join for digest
 	CompetitorName string
 	PageURL        string
 	PageType       string
+	UserID         int
 }
 
 // SaveChange records a detected change.
 func (s *Store) SaveChange(ctx context.Context, pageID, oldSnapID, newSnapID int, severity, analysis, diffUnified string, additions, deletions int) (int, error) {
+	var oldSnap interface{}
+	if oldSnapID > 0 {
+		oldSnap = oldSnapID
+	}
+
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO changes (page_id, old_snapshot_id, new_snapshot_id, severity, analysis, diff_unified, diff_additions, diff_deletions)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		pageID, oldSnapID, newSnapID, severity, analysis, diffUnified, additions, deletions)
+		`INSERT INTO analyses (page_id, old_snapshot_id, new_snapshot_id, severity, summary, raw_diff)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		pageID, oldSnap, newSnapID, severity, analysis, diffUnified)
 	if err != nil {
 		return 0, err
 	}
@@ -302,26 +258,76 @@ func (s *Store) SaveChange(ctx context.Context, pageID, oldSnapID, newSnapID int
 	return int(id), nil
 }
 
-// --- Subscribers ---
+// GetLatestChange fetches the most recent analysis change for a page.
+func (s *Store) GetLatestChange(ctx context.Context, pageID int) (*Change, error) {
+	row := s.db.QueryRowContext(ctx,
+		`SELECT id, page_id, old_snapshot_id, new_snapshot_id, severity, summary, raw_diff, created_at 
+		 FROM analyses 
+		 WHERE page_id = ? 
+		 ORDER BY created_at DESC LIMIT 1`, pageID)
 
-// Subscriber represents an email subscriber.
-type Subscriber struct {
-	ID    int
-	Email string
+	var c Change
+	var summary, diffUnified sql.NullString
+	err := row.Scan(&c.ID, &c.PageID, &c.OldSnapshotID, &c.NewSnapshotID, &c.Severity, &summary, &diffUnified, &c.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	c.Analysis = summary.String
+	c.DiffUnified = diffUnified.String
+	return &c, nil
 }
 
-// AddSubscriber creates or returns existing subscriber.
-func (s *Store) AddSubscriber(ctx context.Context, email string) (int, error) {
+// GetTimelineByCompetitor returns all historical changes for a specific competitor's pages.
+func (s *Store) GetTimelineByCompetitor(ctx context.Context, competitorID int) ([]Change, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT a.id, a.page_id, a.old_snapshot_id, a.new_snapshot_id, a.severity, a.summary, a.raw_diff, a.created_at, p.url 
+		 FROM analyses a
+		 JOIN pages p ON a.page_id = p.id
+		 WHERE p.competitor_id = ?
+		 ORDER BY a.created_at DESC`, competitorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []Change
+	for rows.Next() {
+		var c Change
+		var summary, diffUnified sql.NullString
+		if err := rows.Scan(&c.ID, &c.PageID, &c.OldSnapshotID, &c.NewSnapshotID, &c.Severity, &summary, &diffUnified, &c.CreatedAt, &c.PageURL); err != nil {
+			return nil, err
+		}
+		c.Analysis = summary.String
+		c.DiffUnified = diffUnified.String
+		result = append(result, c)
+	}
+	return result, nil
+}
+
+// --- Users (formerly Subscribers) ---
+
+// User represents a tenant.
+type User struct {
+	ID    int
+	Email string
+	Plan  string
+}
+
+// ensureUser is a helper for testing/CLI to make sure a user exists.
+func (s *Store) ensureUser(ctx context.Context, email string) (int, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	res, err := s.db.ExecContext(ctx,
-		`INSERT INTO subscribers (email) VALUES (?) ON CONFLICT(email) DO UPDATE SET active=1`,
-		email)
+		`INSERT INTO users (email, password_hash, plan) VALUES (?, 'dummy_hash', 'free') 
+         ON CONFLICT(email) DO NOTHING`, email)
 	if err != nil {
 		return 0, err
 	}
 	id, _ := res.LastInsertId()
 	if id == 0 {
-		row := s.db.QueryRowContext(ctx, `SELECT id FROM subscribers WHERE email = ?`, email)
+		row := s.db.QueryRowContext(ctx, `SELECT id FROM users WHERE email = ?`, email)
 		if err := row.Scan(&id); err != nil {
 			return 0, err
 		}
@@ -329,71 +335,50 @@ func (s *Store) AddSubscriber(ctx context.Context, email string) (int, error) {
 	return int(id), nil
 }
 
-// RemoveSubscriber deactivates a subscriber.
-func (s *Store) RemoveSubscriber(ctx context.Context, email string) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE subscribers SET active = 0 WHERE email = ? COLLATE NOCASE`, email)
-	return err
-}
-
-// --- Subscriptions ---
-
-// Subscribe links a subscriber to a competitor.
-func (s *Store) Subscribe(ctx context.Context, subscriberID, competitorID int) error {
-	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO subscriptions (subscriber_id, competitor_id) VALUES (?, ?) ON CONFLICT DO NOTHING`,
-		subscriberID, competitorID)
-	return err
-}
-
-// GetActiveSubscribers returns all active subscribers with their subscribed competitor IDs.
-func (s *Store) GetActiveSubscribers(ctx context.Context) ([]SubscriberWithCompetitors, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT s.id, s.email, GROUP_CONCAT(sub.competitor_id) as comp_ids,
-		       GROUP_CONCAT(c.name) as comp_names
-		FROM subscribers s
-		JOIN subscriptions sub ON sub.subscriber_id = s.id
-		JOIN competitors c ON c.id = sub.competitor_id
-		WHERE s.active = 1
-		GROUP BY s.id, s.email`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var result []SubscriberWithCompetitors
-	for rows.Next() {
-		var sw SubscriberWithCompetitors
-		var compIDs, compNames string
-		if err := rows.Scan(&sw.ID, &sw.Email, &compIDs, &compNames); err != nil {
-			return nil, err
-		}
-		for _, id := range strings.Split(compIDs, ",") {
-			var cid int
-			fmt.Sscan(id, &cid)
-			sw.CompetitorIDs = append(sw.CompetitorIDs, cid)
-		}
-		sw.CompetitorNames = strings.Split(compNames, ",")
-		result = append(result, sw)
-	}
-	return result, nil
-}
-
-// SubscriberWithCompetitors holds subscriber info with their subscriptions.
-type SubscriberWithCompetitors struct {
+// UserWithCompetitors holds user info with their competitors.
+type UserWithCompetitors struct {
 	ID              int
 	Email           string
 	CompetitorIDs   []int
 	CompetitorNames []string
 }
 
-// ListSubscribers returns all active subscribers for display.
-func (s *Store) ListSubscribers(ctx context.Context) ([]SubscriberWithCompetitors, error) {
-	return s.GetActiveSubscribers(ctx)
+// GetUsersWithCompetitors returns all users along with their monitored competitors.
+// This replaces the old GetActiveSubscribers logic.
+func (s *Store) GetUsersWithCompetitors(ctx context.Context) ([]UserWithCompetitors, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT u.id, u.email, GROUP_CONCAT(c.id) as comp_ids,
+		       GROUP_CONCAT(c.name) as comp_names
+		FROM users u
+		JOIN competitors c ON c.user_id = u.id
+		GROUP BY u.id, u.email`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []UserWithCompetitors
+	for rows.Next() {
+		var uw UserWithCompetitors
+		var compIDs, compNames string
+		if err := rows.Scan(&uw.ID, &uw.Email, &compIDs, &compNames); err != nil {
+			return nil, err
+		}
+		for _, idStr := range strings.Split(compIDs, ",") {
+			if idStr == "" {
+				continue
+			}
+			var cid int
+			fmt.Sscan(idStr, &cid)
+			uw.CompetitorIDs = append(uw.CompetitorIDs, cid)
+		}
+		if compNames != "" {
+			uw.CompetitorNames = strings.Split(compNames, ",")
+		}
+		result = append(result, uw)
+	}
+	return result, nil
 }
 
-// --- Metadata (KV store for runtime state) ---
-
-// InitMetadata creates the metadata table if it doesn't exist.
 func (s *Store) InitMetadata(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS metadata (
@@ -403,32 +388,26 @@ func (s *Store) InitMetadata(ctx context.Context) error {
 	return err
 }
 
-// GetMeta retrieves a metadata value by key. Returns "" if not found.
 func (s *Store) GetMeta(ctx context.Context, key string) (string, error) {
 	var value string
-	err := s.db.QueryRowContext(ctx,
-		`SELECT value FROM metadata WHERE key = ?`, key).Scan(&value)
+	err := s.db.QueryRowContext(ctx, `SELECT value FROM metadata WHERE key = ?`, key).Scan(&value)
 	if err == sql.ErrNoRows {
 		return "", nil
 	}
 	return value, err
 }
 
-// SetMeta sets a metadata key-value pair (upsert).
 func (s *Store) SetMeta(ctx context.Context, key, value string) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO metadata (key, value) VALUES (?, ?)
-		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+		`INSERT INTO metadata (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
 		key, value)
 	return err
 }
 
-// GetLastChangeTime returns the time of the most recent detected change.
-// Returns zero time if no changes exist.
 func (s *Store) GetLastChangeTime(ctx context.Context) (time.Time, error) {
 	var t time.Time
 	err := s.db.QueryRowContext(ctx,
-		`SELECT detected_at FROM changes ORDER BY detected_at DESC LIMIT 1`).Scan(&t)
+		`SELECT created_at FROM analyses ORDER BY created_at DESC LIMIT 1`).Scan(&t)
 	if err == sql.ErrNoRows {
 		return time.Time{}, nil
 	}

@@ -35,7 +35,7 @@ func Open(cfg Config) (*DB, error) {
 	var driverName string
 	switch cfg.Driver {
 	case SQLite:
-		driverName = "sqlite3"
+		driverName = "sqlite"
 	case Postgres:
 		driverName = "postgres"
 	default:
