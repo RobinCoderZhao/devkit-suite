@@ -59,6 +59,11 @@ func splitTableRow(line string) []string {
 func MatchModelName(rawName string, knownModels []benchmarks.ModelConfig) (*benchmarks.ModelConfig, bool) {
 	rawLower := strings.ToLower(cleanModelName(rawName))
 
+	// Check alias table first
+	if aliasedName, ok := modelAliases[rawLower]; ok {
+		rawLower = strings.ToLower(aliasedName)
+	}
+
 	for i := range knownModels {
 		modelLower := strings.ToLower(knownModels[i].Name)
 
@@ -90,11 +95,54 @@ func MatchModelName(rawName string, knownModels []benchmarks.ModelConfig) (*benc
 	return nil, false
 }
 
+// modelAliases maps real-world model names (from LLM leaderboards)
+// to the tracked model names in our DefaultModels/FallbackModels.
+var modelAliases = map[string]string{
+	// Google models
+	"gemini 2.5 pro":   "Gemini 2.5 Pro",
+	"gemini 2.5 flash": "Gemini 2.0 Flash",
+	"gemini-2.5-pro":   "Gemini 2.5 Pro",
+	"gemini-2.5-flash": "Gemini 2.0 Flash",
+	// OpenAI models
+	"o3":                "o3-mini",
+	"o3-mini":           "o3-mini",
+	"gpt-5 mini":        "GPT-4o",
+	"gpt-4o":            "GPT-4o",
+	"chatgpt-4o latest": "GPT-4o",
+	"o1":                "o1",
+	// Anthropic models
+	"claude sonnet 4.5": "Claude 3.5 Sonnet",
+	"claude 3.7 sonnet": "Claude 3.5 Sonnet",
+	"claude opus 4.6":   "Claude 3 Opus",
+	"claude 3 opus":     "Claude 3 Opus",
+	"claude 3.5 sonnet": "Claude 3.5 Sonnet",
+	// DeepSeek
+	"deepseek-v3.2": "DeepSeek-V3",
+	"deepseek-v3":   "DeepSeek-V3",
+	"deepseek-r2":   "DeepSeek-R2",
+	// Alibaba
+	"qwen3-235b":  "Qwen3-235B",
+	"qwen-3-235b": "Qwen3-235B",
+	"qwen2.5-max": "Qwen2.5-Max",
+	// MiniMax
+	"minimax-m2.5": "MiniMax-M2.5",
+	"minimax-m1":   "MiniMax-M1",
+}
+
 // cleanModelName removes common suffixes/prefixes from model names.
 func cleanModelName(name string) string {
+	// IMPORTANT: Remove image markdown FIRST: ![alt](url)
+	// Otherwise linkRegex matches [alt text] inside ![]() giving wrong result
+	name = imgRegex.ReplaceAllString(name, "")
+
+	// Extract name from markdown link: [Model Name](url) Provider
+	if linkMatch := linkRegex.FindStringSubmatch(name); len(linkMatch) >= 2 {
+		name = linkMatch[1]
+	}
+
 	// Remove parenthetical suffixes: "Model (thinking)", "Model (high)"
-	re := regexp.MustCompile(`\s*\([^)]*\)\s*`)
-	name = re.ReplaceAllString(name, "")
+	parenRegex := regexp.MustCompile(`\s*\([^)]*\)\s*`)
+	name = parenRegex.ReplaceAllString(name, "")
 
 	// Remove common prefixes
 	name = strings.TrimPrefix(name, "🥇 ")
@@ -107,6 +155,13 @@ func cleanModelName(name string) string {
 
 	return strings.TrimSpace(name)
 }
+
+var (
+	// Matches [text](url) — captures text
+	linkRegex = regexp.MustCompile(`\[([^\]]+)\]\([^)]+\)`)
+	// Matches ![alt](url)
+	imgRegex = regexp.MustCompile(`!\[[^\]]*\]\([^)]+\)`)
+)
 
 // normalizeModelName creates a simplified form for matching.
 func normalizeModelName(name string) string {
@@ -121,8 +176,19 @@ func normalizeModelName(name string) string {
 var scoreRegex = regexp.MustCompile(`^([0-9]+(?:\.[0-9]+)?)\s*%?$`)
 
 // ParseScore extracts a numeric score from a cell value.
+// Handles both percentage (85.0) and decimal (0.850) formats.
 func ParseScore(cell string) (float64, bool) {
 	cell = strings.TrimSpace(cell)
+
+	// Skip non-score cells
+	if cell == "" || cell == "—" || cell == "-" || cell == "N/A" {
+		return 0, false
+	}
+
+	// Remove trailing asterisks, daggers, etc.
+	cell = strings.TrimRight(cell, "*†‡")
+
+	hasPercentSign := strings.HasSuffix(cell, "%")
 	cell = strings.TrimSuffix(cell, "%")
 	cell = strings.ReplaceAll(cell, ",", "")
 
@@ -133,5 +199,16 @@ func ParseScore(cell string) (float64, bool) {
 
 	var score float64
 	_, err := fmt.Sscanf(matches[1], "%f", &score)
-	return score, err == nil
+	if err != nil {
+		return 0, false
+	}
+
+	// Auto-detect decimal format: if score is 0.0-1.0 and no % sign,
+	// it's likely a decimal — convert to percentage.
+	// Exception: values like 0 or 1 exactly (could be count)
+	if !hasPercentSign && score > 0 && score < 1.0 {
+		score = score * 100
+	}
+
+	return score, true
 }

@@ -416,7 +416,8 @@ func cmdServe() {
 
 		fetcher := scraper.NewHTTPFetcher()
 		var bParsers []benchmarks.Parser
-		bParsers = append(bParsers, parsers.NewLLMStatsParser(fetcher, cfg.Models))
+		allModels := append(cfg.Models, benchmarks.FallbackModels...)
+		bParsers = append(bParsers, parsers.NewLLMStatsParser(fetcher, allModels))
 
 		// Seed data if empty
 		count, _ := bStore.ScoreCount(ctx)
@@ -518,7 +519,8 @@ func cmdBenchmark() {
 			fetcher := scraper.NewHTTPFetcher()
 
 			var liveParsers []benchmarks.Parser
-			liveParsers = append(liveParsers, parsers.NewLLMStatsParser(fetcher, cfg.Models))
+			allModels := append(cfg.Models, benchmarks.FallbackModels...)
+			liveParsers = append(liveParsers, parsers.NewLLMStatsParser(fetcher, allModels))
 
 			// Add LLM extractor if LLM client is available
 			llmClient := newLLMClient()
@@ -545,7 +547,7 @@ func cmdBenchmark() {
 	}
 
 	// Filter empty models (min 1 score, min 10 models)
-	report.FilterEmptyModels(1, 10)
+	report.FilterEmptyModels(3, 10)
 
 	fmt.Printf("📊 Benchmark Report: %d benchmarks × %d models\n\n", len(benchmarks.AllBenchmarks), len(report.Models))
 

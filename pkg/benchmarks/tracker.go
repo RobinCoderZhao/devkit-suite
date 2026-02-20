@@ -66,7 +66,7 @@ func (t *Tracker) runOnce(ctx context.Context, models []ModelConfig) {
 			log.Printf("[benchmark-tracker] Report error: %v", err)
 			return
 		}
-		report.FilterEmptyModels(1, 10)
+		report.FilterEmptyModels(3, 10)
 		t.OnUpdate(report)
 	}
 }
@@ -78,6 +78,6 @@ func (t *Tracker) QuickReport(ctx context.Context, models []ModelConfig) (*Bench
 	if err != nil {
 		return nil, fmt.Errorf("build report: %w", err)
 	}
-	report.FilterEmptyModels(1, 10)
+	report.FilterEmptyModels(3, 10)
 	return report, nil
 }
