@@ -164,35 +164,94 @@ NewsBot 本身不收费，但它产生的价值是：
 
 ## 五、技术上线清单
 
-### 5.1 域名和基础设施
+### 5.1 服务器基础设施（阿里云新加坡 ECS）
 
-| 项目 | 建议 | 成本 |
+> [!IMPORTANT]
+> **为什么选新加坡？** OpenAI（2024年7月起）和 Google Gemini API 均**不支持香港**。
+> 新加坡属 OpenAI/Gemini/Claude 官方支持地区，可直连所有主流 LLM API + Telegram。
+
+#### 服务器选型
+
+| 项目 | 规格 | 价格 |
 |------|------|------|
-| 域名 | devkit.dev / watchbot.dev | $12-40/年 |
-| VPS | Hetzner CX21 (2c/4G) | $5/月 |
-| 邮件 | Resend / SES | 免费层 |
-| 监控 | UptimeRobot (免费) | $0 |
-| 支付 | Stripe | 2.9% + $0.30/笔 |
+| **ECS 实例** | 通用算力型 u1, 2C4G | ~199-299 元/年 |
+| **系统盘** | 80G ESSD Entry | 包含在实例中 |
+| **公网带宽** | 5M 固定带宽 | 包含在实例中 |
+| **操作系统** | Ubuntu 22.04 LTS | 免费 |
 
-### 5.2 上线前必须完成
+#### LLM API 可用性对比
 
-- [ ] Landing Page (watchbot.dev)
+| API | 香港 | 新加坡 |
+|-----|------|--------|
+| OpenAI GPT-4o | ❌ 被封 | ✅ 直连 |
+| Google Gemini | ❌ 不支持 | ✅ 直连 |
+| Anthropic Claude | ✅ | ✅ 直连 |
+| MiniMax | ✅ | ✅ 直连 |
+| Telegram Bot | ✅ | ✅ 直连 |
+
+#### 一键部署
+
+```bash
+ssh root@<server-ip>
+git clone https://github.com/RobinCoderZhao/API-Change-Sentinel.git /tmp/devkit
+bash /tmp/devkit/deploy/setup.sh    # 约 2-3 分钟
+nano /opt/devkit-suite/.env         # 填入 API Key
+sudo systemctl start newsbot watchbot
+```
+
+> 详细部署文档见 [aliyun_sg_deployment.md](./aliyun_sg_deployment.md)
+
+### 5.2 年度成本估算
+
+| 项目 | 年成本 | 说明 |
+|------|--------|------|
+| ECS u1 2C4G（新加坡） | ~199-299 元 | 关注活动价 |
+| 域名 devkit.dev / watchbot.dev | ~80-280 元 | .dev 域名 |
+| LLM API（MiniMax M2.5） | ~100-200 元 | ~$0.013/次, 2次/天 |
+| SMTP 邮件 | 0 元 | Gmail App Password 免费 |
+| SSL 证书 | 0 元 | Let's Encrypt 免费 |
+| Stripe 支付 | 2.9% + $0.30/笔 | 按交易抽成 |
+| **年度总计** | **~380-780 元** | **月均 32-65 元** |
+
+> [!TIP]
+> 月均 32-65 元即可运行全套服务（NewsBot + WatchBot + Benchmark）。
+> 第 6 个月 MRR $870 即可覆盖全年成本 10 倍以上。
+
+### 5.3 安全组与运维
+
+| 方向 | 端口 | 用途 |
+|------|------|------|
+| 入站 TCP | 22 | SSH 管理 |
+| 入站 TCP | 80/443 | Web Dashboard + API |
+| 入站 TCP | 8080 | MCP Server（可选） |
+| 出站 TCP | 443 | HTTPS (LLM API + 爬取) |
+
+运维工具已内置：
+
+- `deploy/setup.sh` — 一键部署
+- `deploy/upgrade.sh` — 升级
+- `deploy/status.sh` — 状态检查
+- 自动备份 SQLite（每周日凌晨 3 点，保留 30 天）
+- UFW 防火墙 + fail2ban 防暴力破解
+
+### 5.4 上线前必须完成
+
+- [x] NewsBot 全流程（28 来源 → LLM 分析 → 翻译 → 邮件）
+- [x] WatchBot 竞品监控（抓取 → diff → LLM 分析 → 邮件）
+- [x] Benchmark Tracker（llm-stats.com 实时采集 → PNG → 邮件）
+- [x] 多语言 i18n（6 语言 + IP 自动检测）
+- [x] LLM 多模型支持（OpenAI / MiniMax / Gemini）
+- [x] 邮件通知系统（SMTP）
+- [x] SQLite 存储 + 去重
+- [x] 一键部署脚本 + 运维工具
+- [ ] 购买阿里云新加坡 ECS + 部署
+- [ ] 购买域名 devkit.dev / watchbot.dev
+- [ ] Landing Page（watchbot.dev 着陆页）
 - [ ] Stripe 支付集成
 - [ ] 用户注册/登录系统
 - [ ] WatchBot Web Dashboard
 - [ ] API 限速和用量统计
 - [ ] 隐私政策和服务条款
-- [ ] GDPR 合规（如面向欧洲用户）
-
-### 5.3 已完成的技术基础
-
-- [x] NewsBot 全流程（抓取 → 分析 → 翻译 → 邮件）
-- [x] WatchBot 竞品监控（抓取 → diff → LLM 分析 → 邮件）
-- [x] Benchmark Tracker（llm-stats.com 实时采集 → PNG）
-- [x] 多语言 i18n（6 语言 + IP 自动检测）
-- [x] LLM 多模型支持（OpenAI / MiniMax 等）
-- [x] 邮件通知系统（SMTP）
-- [x] SQLite 存储
 
 ---
 
