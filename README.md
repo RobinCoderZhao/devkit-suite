@@ -151,12 +151,20 @@ devkit-suite/
 
 ## 🔧 Supported LLM Providers
 
-| Provider | Models | Cost |
-|----------|--------|------|
-| **MiniMax** | M2.5 | ~$0.01/call ⭐ Cheapest |
-| **OpenAI** | GPT-4o, GPT-4o-mini | $0.01-0.03/call |
-| **Google** | Gemini 2.5 Pro | Varies |
-| **Anthropic** | Claude 3.7 Sonnet | Varies |
+| Provider | Models | Input / 1M tokens | Output / 1M tokens |
+|----------|--------|-------------------|---------------------|
+| **Google** | Gemini 2.5 Flash Lite | $0.10 | $0.40 |
+| | Gemini 2.5 Flash | $0.30 | $2.50 |
+| | Gemini 3 Pro | $2.00 | $12.00 |
+| **OpenAI** | GPT-4.1 nano | $0.20 | $0.80 |
+| | GPT-5 mini | $0.25 | $2.00 |
+| | GPT-5.2 | $1.75 | $14.00 |
+| **Anthropic** | Claude Haiku 4.5 | $1.00 | $5.00 |
+| | Claude Sonnet 4.5 | $3.00 | $15.00 |
+| **MiniMax** | M2.5 | $0.29 | $1.17 |
+| **Alibaba** | qwen-turbo | $0.05 | $0.20 |
+
+> 📋 Full pricing table → [docs/llm_pricing.md](docs/llm_pricing.md)
 
 ---
 
