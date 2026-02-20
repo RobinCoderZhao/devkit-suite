@@ -104,12 +104,7 @@ func (c *geminiClient) Generate(ctx context.Context, req *Request) (*Response, e
 		})
 	}
 
-	gReq.GenerationConfig = &geminiGenConfig{
-		// Disable thinking mode for Gemini 2.5+ models.
-		// Without this, thinking tokens consume maxOutputTokens budget,
-		// leaving only ~40 tokens for actual content output.
-		ThinkingConfig: &thinkingConfig{ThinkingBudget: 0},
-	}
+	gReq.GenerationConfig = &geminiGenConfig{}
 	if req.MaxTokens > 0 {
 		gReq.GenerationConfig.MaxOutputTokens = req.MaxTokens
 	} else if c.cfg.MaxTokens > 0 {

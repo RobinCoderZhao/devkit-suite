@@ -339,7 +339,7 @@ Diff：
 
 	resp, err := gp.llmClient.Generate(ctx, &llm.Request{
 		Messages:    []llm.Message{{Role: "user", Content: prompt}},
-		MaxTokens:   1024,
+		MaxTokens:   8192,
 		Temperature: 0.3,
 	})
 	if err != nil {
