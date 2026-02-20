@@ -51,9 +51,14 @@ type geminiPart struct {
 }
 
 type geminiGenConfig struct {
-	MaxOutputTokens  int     `json:"maxOutputTokens,omitempty"`
-	Temperature      float64 `json:"temperature,omitempty"`
-	ResponseMimeType string  `json:"responseMimeType,omitempty"`
+	MaxOutputTokens  int             `json:"maxOutputTokens,omitempty"`
+	Temperature      float64         `json:"temperature,omitempty"`
+	ResponseMimeType string          `json:"responseMimeType,omitempty"`
+	ThinkingConfig   *thinkingConfig `json:"thinkingConfig,omitempty"`
+}
+
+type thinkingConfig struct {
+	ThinkingBudget int `json:"thinkingBudget"`
 }
 
 type geminiResponse struct {
@@ -99,7 +104,12 @@ func (c *geminiClient) Generate(ctx context.Context, req *Request) (*Response, e
 		})
 	}
 
-	gReq.GenerationConfig = &geminiGenConfig{}
+	gReq.GenerationConfig = &geminiGenConfig{
+		// Disable thinking mode for Gemini 2.5+ models.
+		// Without this, thinking tokens consume maxOutputTokens budget,
+		// leaving only ~40 tokens for actual content output.
+		ThinkingConfig: &thinkingConfig{ThinkingBudget: 0},
+	}
 	if req.MaxTokens > 0 {
 		gReq.GenerationConfig.MaxOutputTokens = req.MaxTokens
 	} else if c.cfg.MaxTokens > 0 {
