@@ -15,7 +15,7 @@ echo ""
 # 服务状态
 echo "📦 服务状态:"
 echo "---"
-for svc in newsbot watchbot; do
+for svc in newsbot watchbot devkit-api devkit-frontend; do
     status=$(systemctl is-active ${svc} 2>/dev/null || echo "inactive")
     if [ "${status}" = "active" ]; then
         echo "  ✅ ${svc}: 运行中"

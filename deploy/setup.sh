@@ -492,6 +492,49 @@ SyslogIdentifier=watchbot
 WantedBy=multi-user.target
 EOF
 
+    cat > /etc/systemd/system/devkit-api.service << EOF
+[Unit]
+Description=DevKit Suite API Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${APP_USER}
+WorkingDirectory=${APP_DIR}
+EnvironmentFile=${ENV_FILE}
+ExecStart=${APP_DIR}/bin/api
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=devkit-api
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    cat > /etc/systemd/system/devkit-frontend.service << EOF
+[Unit]
+Description=DevKit Suite Next.js Frontend
+After=network-online.target
+
+[Service]
+Type=simple
+User=${APP_USER}
+WorkingDirectory=${APP_DIR}/frontend
+EnvironmentFile=${ENV_FILE}
+ExecStart=/usr/bin/env npm start
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=devkit-frontend
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     # 备份定时任务
     cat > /etc/systemd/system/devkit-backup.service << EOF
 [Unit]
