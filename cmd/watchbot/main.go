@@ -29,6 +29,7 @@ import (
 
 	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/watchbot"
 	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks"
+	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks/parsers"
 	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
 	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/notify"
 	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/scraper"
@@ -448,17 +449,44 @@ func cmdBenchmark() {
 		cfg.Models = benchmarks.AddModel(cfg.Models, addFlag)
 	}
 
-	// Seed data on first run (from screenshot) or scrape
+	// Seed data on first run or scrape from live sources
+	scrapeMode := getFlag("--scrape")
 	count, _ := bStore.ScoreCount(ctx)
-	if count == 0 || getFlag("--scrape") == "true" {
-		fmt.Println("📊 Loading benchmark data...")
-		seeds := benchmarks.SeedFromScreenshot()
-		scraper := benchmarks.NewScraper(bStore, benchmarks.NewManualParser(seeds))
-		n, err := scraper.ScrapeAll(ctx)
-		if err != nil {
-			slog.Warn("scrape", "error", err)
+	if count == 0 || scrapeMode != "" {
+		// Always load seed data if DB is empty
+		if count == 0 || scrapeMode == "seed" || scrapeMode == "true" {
+			fmt.Println("📊 Loading seed benchmark data...")
+			seeds := benchmarks.SeedFromScreenshot()
+			s := benchmarks.NewScraper(bStore, benchmarks.NewManualParser(seeds))
+			n, err := s.ScrapeAll(ctx)
+			if err != nil {
+				slog.Warn("seed", "error", err)
+			}
+			fmt.Printf("   ✅ %d seed scores loaded\n", n)
 		}
-		fmt.Printf("   ✅ %d scores loaded\n", n)
+
+		// Live scrape from real sources
+		if scrapeMode == "true" || scrapeMode == "live" {
+			fmt.Println("🌐 Scraping live benchmark data...")
+			fetcher := scraper.NewHTTPFetcher()
+
+			var liveParsers []benchmarks.Parser
+			liveParsers = append(liveParsers, parsers.NewLLMStatsParser(fetcher, cfg.Models))
+
+			// Add LLM extractor if LLM client is available
+			llmClient := newLLMClient()
+			if llmClient != nil {
+				liveParsers = append(liveParsers, parsers.NewLLMExtractor(llmClient, fetcher, cfg.Models))
+				defer llmClient.Close()
+			}
+
+			s := benchmarks.NewScraper(bStore, liveParsers...)
+			n, err := s.ScrapeAll(ctx)
+			if err != nil {
+				slog.Warn("live scrape", "error", err)
+			}
+			fmt.Printf("   ✅ %d live scores scraped\n", n)
+		}
 	}
 
 	// Build report
