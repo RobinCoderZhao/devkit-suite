@@ -78,7 +78,7 @@ func EmailRowBgColor(index int) string {
 // ---- Shared Markdown → HTML Conversion ----
 
 // MarkdownToHTML converts simple markdown to inline HTML for email bodies.
-// Handles: **bold**, *italic*, # headings, - lists, numbered lists.
+// Handles: **bold**, *italic*, # headings, - lists, • lists, numbered lists.
 func MarkdownToHTML(md string) string {
 	if md == "" {
 		return ""
@@ -104,9 +104,11 @@ func MarkdownToHTML(md string) string {
 			line = fmt.Sprintf(`<strong style="color:#f0f0f0;font-size:15px;">%s</strong>`, line[2:])
 		}
 
-		// Bullet lists
+		// Bullet lists (both - and •)
 		if strings.HasPrefix(line, "- ") {
-			line = fmt.Sprintf(`<span style="color:#808090;">•</span> %s`, line[2:])
+			line = fmt.Sprintf(`<span style="color:#ff9800;">•</span> %s`, line[2:])
+		} else if strings.HasPrefix(line, "• ") {
+			line = fmt.Sprintf(`<span style="color:#ff9800;">•</span> %s`, line[len("• "):])
 		}
 
 		sb.WriteString(fmt.Sprintf(`<p style="margin:4px 0;font-size:14px;line-height:1.6;color:#a0a0b8;">%s</p>`, line))

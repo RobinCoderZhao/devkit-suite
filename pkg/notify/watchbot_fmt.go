@@ -55,13 +55,11 @@ func (f *WatchEmailFormatter) Format(data WatchDigestData) Message {
 		analysisHTML := MarkdownToHTML(c.Analysis)
 		stats := DiffStatsHTML(c.Additions, c.Deletions)
 
-		// Single change: show emoji instead of numbered badge
+		// Single change: hide index badge column (severity badge already shows emoji)
 		// Multiple changes: show numbered badge
 		var indexBadge string
 		if data.ChangeCount == 1 {
-			indexBadge = fmt.Sprintf(
-				`<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;font-size:18px;">%s</span>`,
-				emoji)
+			indexBadge = "" // severity badge already shows the icon
 		} else {
 			indexBadge = fmt.Sprintf(
 				`<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;background:rgba(255,109,0,0.12);border-radius:8px;font-size:13px;font-weight:700;color:#ff9800;">%d</span>`,

@@ -358,7 +358,11 @@ func cmdCheck() {
 	db, store := openDB()
 	defer db.Close()
 
-	llmClient := newLLMClient()
+	// Use Pro tier for change analysis (higher quality)
+	llmClient, err := llm.NewTieredClient(llm.TierPro)
+	if err != nil {
+		slog.Warn("LLM client not available", "error", err)
+	}
 	if llmClient != nil {
 		defer llmClient.Close()
 	}
