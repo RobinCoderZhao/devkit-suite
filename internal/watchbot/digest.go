@@ -7,7 +7,7 @@ import (
 )
 
 // ComposeDigest creates a single aggregated notification for a subscriber.
-// Uses the WatchBot formatter for channel-specific output.
+// Changes are grouped by competitor for better readability.
 func ComposeDigest(changes []Change, subscriber SubscriberWithCompetitors, formatter *notify.WatchEmailFormatter) notify.Message {
 	if len(changes) == 0 {
 		return notify.Message{}
@@ -27,25 +27,26 @@ func ComposeDigest(changes []Change, subscriber SubscriberWithCompetitors, forma
 		}
 	}
 
+	// Group changes by competitor
+	groups := notify.GroupChanges(items)
+
 	// Find unchanged competitors
-	changedCompIDs := make(map[int]bool)
+	changedCompNames := make(map[string]bool)
 	for _, c := range changes {
-		for i, name := range subscriber.CompetitorNames {
-			if name == c.CompetitorName && i < len(subscriber.CompetitorIDs) {
-				changedCompIDs[subscriber.CompetitorIDs[i]] = true
-			}
-		}
+		changedCompNames[c.CompetitorName] = true
 	}
 	var unchanged []string
-	for i, name := range subscriber.CompetitorNames {
-		if i < len(subscriber.CompetitorIDs) && !changedCompIDs[subscriber.CompetitorIDs[i]] {
+	seen := make(map[string]bool)
+	for _, name := range subscriber.CompetitorNames {
+		if !changedCompNames[name] && !seen[name] {
 			unchanged = append(unchanged, name)
+			seen[name] = true
 		}
 	}
 
 	data := notify.WatchDigestData{
 		ChangeCount: len(changes),
-		Changes:     items,
+		Groups:      groups,
 		Unchanged:   unchanged,
 		Date:        strings.Split(changes[0].DetectedAt.String(), " ")[0],
 	}
