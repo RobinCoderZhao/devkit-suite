@@ -63,6 +63,7 @@ type geminiResponse struct {
 				Text string `json:"text"`
 			} `json:"parts"`
 		} `json:"content"`
+		FinishReason string `json:"finishReason"`
 	} `json:"candidates"`
 	UsageMetadata struct {
 		PromptTokenCount     int `json:"promptTokenCount"`
@@ -151,12 +152,13 @@ func (c *geminiClient) Generate(ctx context.Context, req *Request) (*Response, e
 
 	latency := time.Since(start).Milliseconds()
 	return &Response{
-		Content:   gResp.Candidates[0].Content.Parts[0].Text,
-		TokensIn:  gResp.UsageMetadata.PromptTokenCount,
-		TokensOut: gResp.UsageMetadata.CandidatesTokenCount,
-		Cost:      EstimateCost(c.cfg.Model, gResp.UsageMetadata.PromptTokenCount, gResp.UsageMetadata.CandidatesTokenCount),
-		Model:     c.cfg.Model,
-		LatencyMs: latency,
+		Content:      gResp.Candidates[0].Content.Parts[0].Text,
+		FinishReason: gResp.Candidates[0].FinishReason,
+		TokensIn:     gResp.UsageMetadata.PromptTokenCount,
+		TokensOut:    gResp.UsageMetadata.CandidatesTokenCount,
+		Cost:         EstimateCost(c.cfg.Model, gResp.UsageMetadata.PromptTokenCount, gResp.UsageMetadata.CandidatesTokenCount),
+		Model:        c.cfg.Model,
+		LatencyMs:    latency,
 	}, nil
 }
 

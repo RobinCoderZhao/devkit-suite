@@ -319,23 +319,19 @@ func (gp *GlobalPipeline) analyzeDiff(ctx context.Context, page PageWithMeta, di
 		return diff.Summary(), "important"
 	}
 
-	prompt := fmt.Sprintf(`你是竞品监控分析师。请分析 "%s"（%s 页面）的最新变化。
+	prompt := fmt.Sprintf(`分析 "%s"（%s 页面）的变更，直接列出核心变化。
 
-变更统计：新增 %d 行，删除 %d 行
+变更统计：+%d / -%d 行
 
-Diff 内容：
+Diff：
 %s
 
-请提取关键变化，要求：
-1. 【核心变化】用 2-4 个要点列出最重要的具体变化（如：新增了什么模型、价格如何调整、API 有什么更新）
-2. 【影响评级】CRITICAL（重大！价格/模型/API 重大变化）/ IMPORTANT（值得关注）/ MINOR（小调整）
-
-格式要求：
-- 每个要点一行，以 • 开头
-- 写明具体的数字、名称、版本号等关键信息
-- 不要写空泛的概括，要有信息量
-- 中文回答，总计 200 字以内
-- 最后一行单独写影响评级，如：影响评级：IMPORTANT`,
+【严格格式要求】
+1. 禁止写任何前缀、开场白、总结语（如"分析如下""总结"等），第一个字必须是"•"
+2. 用 2-5 个 • 要点列出最重要的具体变化
+3. 必须写明具体的模型名称、价格数字、版本号、功能名等关键细节
+4. 中文，每个要点一行，总计 300 字以内
+5. 最后一行单独写：影响评级：CRITICAL 或 IMPORTANT 或 MINOR`,
 		page.CompetitorName, page.PageType,
 		diff.Stats.Additions, diff.Stats.Deletions,
 		truncate(diff.Unified, 4000),
@@ -343,13 +339,23 @@ Diff 内容：
 
 	resp, err := gp.llmClient.Generate(ctx, &llm.Request{
 		Messages:    []llm.Message{{Role: "user", Content: prompt}},
-		MaxTokens:   512,
+		MaxTokens:   1024,
 		Temperature: 0.3,
 	})
 	if err != nil {
 		gp.logger.Warn("LLM analysis failed", "error", err)
 		return diff.Summary(), "important"
 	}
+
+	// Debug log: what did the LLM return?
+	gp.logger.Info("LLM analysis result",
+		"page", page.CompetitorName,
+		"model", resp.Model,
+		"tokensIn", resp.TokensIn,
+		"tokensOut", resp.TokensOut,
+		"finishReason", resp.FinishReason,
+		"contentLen", len(resp.Content),
+	)
 
 	// Extract severity from the last line "影响评级：XXX"
 	severity := "important"
@@ -369,7 +375,7 @@ Diff 内容：
 				goto done
 			}
 		}
-		break // Stop scanning if last non-empty line doesn't contain severity
+		break
 	}
 done:
 	return content, severity

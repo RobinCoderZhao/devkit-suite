@@ -75,12 +75,13 @@ type Request struct {
 
 // Response holds the result of an LLM generation.
 type Response struct {
-	Content   string  `json:"content"`
-	TokensIn  int     `json:"tokens_in"`
-	TokensOut int     `json:"tokens_out"`
-	Cost      float64 `json:"cost"`
-	Model     string  `json:"model"`
-	LatencyMs int64   `json:"latency_ms"`
+	Content      string  `json:"content"`
+	FinishReason string  `json:"finish_reason,omitempty"` // "STOP", "MAX_TOKENS", "SAFETY", etc.
+	TokensIn     int     `json:"tokens_in"`
+	TokensOut    int     `json:"tokens_out"`
+	Cost         float64 `json:"cost"`
+	Model        string  `json:"model"`
+	LatencyMs    int64   `json:"latency_ms"`
 }
 
 // NewClient creates a new LLM client based on the provided config.
