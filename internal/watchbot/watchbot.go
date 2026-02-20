@@ -61,6 +61,9 @@ func NewGlobalPipeline(
 
 // RunCheck executes a full monitoring round: fetch all pages, diff, analyze, notify.
 func (gp *GlobalPipeline) RunCheck(ctx context.Context) error {
+	// Ensure metadata table exists
+	_ = gp.store.InitMetadata(ctx)
+
 	// Phase 1: Global fetch (per URL, deduplicated)
 	pages, err := gp.store.GetAllActivePages(ctx)
 	if err != nil {
@@ -84,9 +87,14 @@ func (gp *GlobalPipeline) RunCheck(ctx context.Context) error {
 	gp.logger.Info("phase 1 complete", "pages_checked", len(pages), "changes_detected", len(changesThisRound))
 
 	if len(changesThisRound) == 0 {
-		gp.logger.Info("no changes detected, skipping notifications")
+		gp.logger.Info("no changes detected")
+		// Check if we should send a weekly heartbeat
+		gp.maybeHeartbeat(ctx)
 		return nil
 	}
+
+	// Record that we detected changes (for heartbeat tracking)
+	_ = gp.store.SetMeta(ctx, "last_change_at", time.Now().Format(time.RFC3339))
 
 	// Phase 2: Per-user aggregated notifications
 	subscribers, err := gp.store.GetActiveSubscribers(ctx)
@@ -126,6 +134,84 @@ func (gp *GlobalPipeline) RunCheck(ctx context.Context) error {
 
 	gp.logger.Info("phase 2 complete", "subscribers_notified", len(subscribers))
 	return nil
+}
+
+// maybeHeartbeat sends a weekly "service is running, no changes detected" email
+// if no changes have been detected for 7 days.
+func (gp *GlobalPipeline) maybeHeartbeat(ctx context.Context) {
+	const heartbeatInterval = 7 * 24 * time.Hour
+
+	// Check when the last heartbeat was sent
+	lastHeartbeatStr, _ := gp.store.GetMeta(ctx, "last_heartbeat_at")
+	if lastHeartbeatStr != "" {
+		lastHeartbeat, err := time.Parse(time.RFC3339, lastHeartbeatStr)
+		if err == nil && time.Since(lastHeartbeat) < heartbeatInterval {
+			// Already sent a heartbeat this week
+			return
+		}
+	}
+
+	// Check if it's been 7 days since last change (or since first run)
+	lastChangeStr, _ := gp.store.GetMeta(ctx, "last_change_at")
+	if lastChangeStr == "" {
+		// Also check the changes table directly
+		lastChangeTime, _ := gp.store.GetLastChangeTime(ctx)
+		if !lastChangeTime.IsZero() {
+			lastChangeStr = lastChangeTime.Format(time.RFC3339)
+		}
+	}
+
+	if lastChangeStr != "" {
+		lastChange, err := time.Parse(time.RFC3339, lastChangeStr)
+		if err == nil && time.Since(lastChange) < heartbeatInterval {
+			// Changed within the last 7 days, no heartbeat needed
+			return
+		}
+	}
+
+	// Send heartbeat to all subscribers
+	subscribers, err := gp.store.GetActiveSubscribers(ctx)
+	if err != nil || len(subscribers) == 0 {
+		return
+	}
+
+	// Build competitor list for the heartbeat message
+	competitors, _ := gp.store.ListCompetitors(ctx)
+	var compNames []string
+	for _, c := range competitors {
+		compNames = append(compNames, c.Name)
+	}
+
+	now := time.Now()
+	msg := notify.Message{
+		Title: fmt.Sprintf("🔍 WatchBot 周报 — %s", now.Format("2006-01-02")),
+		Body: fmt.Sprintf(
+			"📋 竞品监控服务运行正常\n\n"+
+				"最近一周（%s ~ %s），您所监控的竞品网站没有检测到变化：\n\n"+
+				"监控对象：%s\n\n"+
+				"✅ 服务运行正常，WatchBot 每天 3 次（00:00 / 08:00 / 16:00）自动检查以上竞品页面。\n"+
+				"一旦检测到任何变化（定价调整、功能更新、API 变更等），将立即发送详细变更报告到您的邮箱。\n\n"+
+				"— DevKit Suite WatchBot",
+			now.AddDate(0, 0, -7).Format("01月02日"),
+			now.Format("01月02日"),
+			strings.Join(compNames, "、"),
+		),
+	}
+
+	for _, sub := range subscribers {
+		if gp.dispatcher != nil && gp.dispatcher.EmailConfig().SMTPHost != "" {
+			emailNotifier := notify.NewEmailNotifierForRecipient(gp.dispatcher.EmailConfig(), sub.Email)
+			if err := emailNotifier.Send(ctx, msg); err != nil {
+				gp.logger.Error("heartbeat send failed", "email", sub.Email, "error", err)
+			} else {
+				gp.logger.Info("weekly heartbeat sent", "email", sub.Email)
+			}
+		}
+	}
+
+	// Record that we sent the heartbeat
+	_ = gp.store.SetMeta(ctx, "last_heartbeat_at", now.Format(time.RFC3339))
+	gp.logger.Info("weekly heartbeat complete", "subscribers", len(subscribers))
 }
 
 // checkPage fetches a page, diffs against latest snapshot, and returns a Change if detected.

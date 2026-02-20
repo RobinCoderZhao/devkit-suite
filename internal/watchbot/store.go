@@ -390,3 +390,47 @@ type SubscriberWithCompetitors struct {
 func (s *Store) ListSubscribers(ctx context.Context) ([]SubscriberWithCompetitors, error) {
 	return s.GetActiveSubscribers(ctx)
 }
+
+// --- Metadata (KV store for runtime state) ---
+
+// InitMetadata creates the metadata table if it doesn't exist.
+func (s *Store) InitMetadata(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS metadata (
+			key   TEXT PRIMARY KEY,
+			value TEXT NOT NULL
+		)`)
+	return err
+}
+
+// GetMeta retrieves a metadata value by key. Returns "" if not found.
+func (s *Store) GetMeta(ctx context.Context, key string) (string, error) {
+	var value string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT value FROM metadata WHERE key = ?`, key).Scan(&value)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return value, err
+}
+
+// SetMeta sets a metadata key-value pair (upsert).
+func (s *Store) SetMeta(ctx context.Context, key, value string) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO metadata (key, value) VALUES (?, ?)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+		key, value)
+	return err
+}
+
+// GetLastChangeTime returns the time of the most recent detected change.
+// Returns zero time if no changes exist.
+func (s *Store) GetLastChangeTime(ctx context.Context) (time.Time, error) {
+	var t time.Time
+	err := s.db.QueryRowContext(ctx,
+		`SELECT detected_at FROM changes ORDER BY detected_at DESC LIMIT 1`).Scan(&t)
+	if err == sql.ErrNoRows {
+		return time.Time{}, nil
+	}
+	return t, err
+}
