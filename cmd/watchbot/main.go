@@ -28,6 +28,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/RobinCoderZhao/API-Change-Sentinel/internal/watchbot"
+	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/benchmarks"
 	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/llm"
 	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/notify"
 	"github.com/RobinCoderZhao/API-Change-Sentinel/pkg/scraper"
@@ -56,6 +57,8 @@ func main() {
 		cmdSubscribers()
 	case "check":
 		cmdCheck()
+	case "benchmark":
+		cmdBenchmark()
 	case "serve":
 		cmdServe()
 	case "version":
@@ -78,6 +81,7 @@ Usage:
   watchbot unsubscribe --email=<e>               取消订阅
   watchbot subscribers                           列出订阅者
   watchbot check                                 运行一次全量检查
+  watchbot benchmark [--output=png|html|text]    模型 Benchmark 对比
   watchbot serve                                 守护进程模式
   watchbot version                               版本`)
 }
@@ -412,6 +416,154 @@ func cmdServe() {
 			return
 		case <-ticker.C:
 			cmdCheck()
+		}
+	}
+}
+
+func cmdBenchmark() {
+	ctx := context.Background()
+	db, _ := openDB()
+	defer db.Close()
+
+	// Init benchmark store
+	bStore, err := benchmarks.NewStore(db)
+	if err != nil {
+		slog.Error("init benchmark store", "error", err)
+		os.Exit(1)
+	}
+
+	// Load model config
+	configPath := getEnv("BENCHMARK_CONFIG", "config/benchmark_models.yaml")
+	cfg, err := benchmarks.LoadConfig(configPath)
+	if err != nil {
+		slog.Warn("load benchmark config", "error", err)
+		cfg = &benchmarks.Config{Models: benchmarks.DefaultModels}
+	}
+
+	// CLI model override
+	if modelsFlag := getFlag("--models"); modelsFlag != "" {
+		cfg.Models = benchmarks.ParseModelsCLI(modelsFlag)
+	}
+	if addFlag := getFlag("--add-model"); addFlag != "" {
+		cfg.Models = benchmarks.AddModel(cfg.Models, addFlag)
+	}
+
+	// Seed data on first run (from screenshot) or scrape
+	count, _ := bStore.ScoreCount(ctx)
+	if count == 0 || getFlag("--scrape") == "true" {
+		fmt.Println("📊 Loading benchmark data...")
+		seeds := benchmarks.SeedFromScreenshot()
+		scraper := benchmarks.NewScraper(bStore, benchmarks.NewManualParser(seeds))
+		n, err := scraper.ScrapeAll(ctx)
+		if err != nil {
+			slog.Warn("scrape", "error", err)
+		}
+		fmt.Printf("   ✅ %d scores loaded\n", n)
+	}
+
+	// Build report
+	date := time.Now().Format("2006-01-02")
+	report, err := bStore.GetScoresForReport(ctx, cfg.Models, date)
+	if err != nil {
+		slog.Error("build report", "error", err)
+		os.Exit(1)
+	}
+
+	// Filter empty models (min 1 score, min 10 models)
+	report.FilterEmptyModels(1, 10)
+
+	fmt.Printf("📊 Benchmark Report: %d benchmarks × %d models\n\n", len(benchmarks.AllBenchmarks), len(report.Models))
+
+	// Output
+	output := getFlag("--output")
+	filePath := getFlag("--file")
+
+	switch output {
+	case "png":
+		if filePath == "" {
+			filePath = "benchmark_report.png"
+		}
+		renderer := benchmarks.NewImageRenderer()
+		if err := renderer.RenderPNG(report, filePath); err != nil {
+			slog.Error("render PNG", "error", err)
+			os.Exit(1)
+		}
+		fmt.Printf("✅ PNG saved: %s\n", filePath)
+
+	case "html":
+		renderer := benchmarks.NewHTMLRenderer()
+		htmlContent := renderer.RenderHTML(report)
+		if filePath == "" {
+			filePath = "benchmark_report.html"
+		}
+		if err := os.WriteFile(filePath, []byte(htmlContent), 0644); err != nil {
+			slog.Error("write HTML", "error", err)
+			os.Exit(1)
+		}
+		fmt.Printf("✅ HTML saved: %s\n", filePath)
+
+	default:
+		// Terminal table output
+		printTerminalTable(report)
+	}
+}
+
+func printTerminalTable(report *benchmarks.BenchmarkReport) {
+	// Header
+	fmt.Printf("%-25s", "Benchmark")
+	for _, m := range report.Models {
+		name := m.Name
+		if len(name) > 16 {
+			name = name[:16]
+		}
+		fmt.Printf(" %16s", name)
+	}
+	fmt.Println()
+	fmt.Println(strings.Repeat("─", 25+17*len(report.Models)))
+
+	for _, cat := range benchmarks.Categories {
+		var benches []benchmarks.BenchmarkDef
+		for _, b := range benchmarks.AllBenchmarks {
+			if b.Category == cat.ID {
+				benches = append(benches, b)
+			}
+		}
+		if len(benches) == 0 {
+			continue
+		}
+		fmt.Printf("%s %s\n", cat.Emoji, cat.Label)
+
+		for _, bench := range benches {
+			variants := bench.Variants
+			if len(variants) == 0 {
+				variants = []string{""}
+			}
+			for _, v := range variants {
+				label := bench.Name
+				if v != "" {
+					label = fmt.Sprintf("  %s", v)
+				}
+				if len(label) > 24 {
+					label = label[:24]
+				}
+				fmt.Printf("%-25s", label)
+				for _, m := range report.Models {
+					score, exists := report.GetScore(bench.ID, v, m.Name)
+					if !exists {
+						fmt.Printf(" %16s", "—")
+					} else {
+						scoreStr := fmt.Sprintf("%.1f%%", score)
+						if bench.Unit == "Elo" {
+							scoreStr = fmt.Sprintf("%d", int(score))
+						}
+						if report.IsHighest(bench.ID, v, m.Name) {
+							scoreStr = "🔴" + scoreStr
+						}
+						fmt.Printf(" %16s", scoreStr)
+					}
+				}
+				fmt.Println()
+			}
 		}
 	}
 }

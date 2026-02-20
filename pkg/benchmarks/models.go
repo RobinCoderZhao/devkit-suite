@@ -273,3 +273,72 @@ func (r *BenchmarkReport) IsHighest(benchmarkID, variant, modelName string) bool
 	key := ScoreKey(benchmarkID, variant)
 	return r.HighestOf[key] == modelName
 }
+
+// ModelScoreCount returns the number of benchmark scores a model has.
+func (r *BenchmarkReport) ModelScoreCount(modelName string) int {
+	count := 0
+	for _, scores := range r.Scores {
+		if _, ok := scores[modelName]; ok {
+			count++
+		}
+	}
+	return count
+}
+
+// FilterEmptyModels removes models with fewer than minScores data points.
+// Ensures the final model count is >= minModels by adding fallback models.
+func (r *BenchmarkReport) FilterEmptyModels(minScores, minModels int) {
+	if minScores <= 0 {
+		minScores = 1
+	}
+	if minModels <= 0 {
+		minModels = 10
+	}
+
+	// Filter models that have enough scores
+	var kept []ModelConfig
+	for _, m := range r.Models {
+		if r.ModelScoreCount(m.Name) >= minScores {
+			kept = append(kept, m)
+		}
+	}
+
+	// If we don't have enough models, add fallbacks
+	if len(kept) < minModels {
+		existing := make(map[string]bool)
+		for _, m := range kept {
+			existing[m.Name] = true
+		}
+		for _, fb := range FallbackModels {
+			if len(kept) >= minModels {
+				break
+			}
+			if !existing[fb.Name] && r.ModelScoreCount(fb.Name) >= minScores {
+				kept = append(kept, fb)
+				existing[fb.Name] = true
+			}
+		}
+	}
+
+	// Re-assign display order
+	for i := range kept {
+		kept[i].DisplayOrder = i + 1
+	}
+
+	r.Models = kept
+}
+
+// FallbackModels are older-generation models from the big 3 providers,
+// used to fill the comparison table when newer models lack data.
+var FallbackModels = []ModelConfig{
+	// Google older gens
+	{Name: "Gemini 2.5 Pro", Provider: "google", Thinking: "High", Gen: "older"},
+	{Name: "Gemini 2.0 Flash", Provider: "google", Gen: "older"},
+	// Anthropic older gens
+	{Name: "Claude 3.5 Sonnet", Provider: "anthropic", Gen: "older"},
+	{Name: "Claude 3 Opus", Provider: "anthropic", Gen: "older"},
+	// OpenAI older gens
+	{Name: "GPT-4o", Provider: "openai", Gen: "older"},
+	{Name: "o1", Provider: "openai", Thinking: "High", Gen: "older"},
+	{Name: "o3-mini", Provider: "openai", Thinking: "High", Gen: "older"},
+}
