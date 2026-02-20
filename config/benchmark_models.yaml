@@ -1,0 +1,70 @@
+# Benchmark Tracker 模型配置
+# 自定义需要对比的模型列表
+# 用法: watchbot benchmark --config=config/benchmark_models.yaml
+
+models:
+  # Google
+  - name: "Gemini 3.1 Pro"
+    provider: google
+    thinking: "High"
+    gen: latest
+    display_order: 1
+  - name: "Gemini 3 Pro"
+    provider: google
+    thinking: "High"
+    gen: previous
+    display_order: 2
+
+  # Anthropic
+  - name: "Opus 4.6"
+    provider: anthropic
+    thinking: "Max"
+    gen: latest
+    display_order: 3
+  - name: "Sonnet 4.6"
+    provider: anthropic
+    thinking: "Max"
+    gen: previous
+    display_order: 4
+
+  # OpenAI
+  - name: "GPT-5.2"
+    provider: openai
+    thinking: "xhigh"
+    gen: latest
+    display_order: 5
+  - name: "GPT-5.3-Codex"
+    provider: openai
+    thinking: "xhigh"
+    gen: previous
+    display_order: 6
+
+  # Alibaba (Qwen)
+  - name: "Qwen3-235B"
+    provider: alibaba
+    gen: latest
+    display_order: 7
+  - name: "Qwen2.5-Max"
+    provider: alibaba
+    gen: previous
+    display_order: 8
+
+  # DeepSeek
+  - name: "DeepSeek-R2"
+    provider: deepseek
+    gen: latest
+    display_order: 9
+  - name: "DeepSeek-V3"
+    provider: deepseek
+    gen: previous
+    display_order: 10
+
+  # MiniMax
+  - name: "MiniMax-M2.5"
+    provider: minimax
+    gen: latest
+    display_order: 11
+  - name: "MiniMax-M1"
+    provider: minimax
+    gen: previous
+    display_order: 12
