@@ -101,8 +101,9 @@ func (gp *GlobalPipeline) RunCheck(ctx context.Context) error {
 			continue
 		}
 
-		// Compose one digest message
-		msg := ComposeDigest(userChanges, sub)
+		// Compose one digest message (use email formatter for rich HTML)
+		formatter := notify.NewEmailFormatter()
+		msg := ComposeDigest(userChanges, sub, formatter)
 
 		// Send via email
 		if gp.dispatcher != nil && gp.dispatcher.EmailConfig().SMTPHost != "" {
