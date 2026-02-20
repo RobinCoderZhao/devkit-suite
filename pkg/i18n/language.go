@@ -60,7 +60,7 @@ func ParseLanguages(s string) []Language {
 		}
 	}
 	if len(langs) == 0 {
-		return []Language{LangZH}
+		return []Language{LangEN}
 	}
 	return langs
 }

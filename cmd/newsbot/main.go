@@ -183,7 +183,7 @@ func runOnce() error {
 	}
 
 	// Collect unique languages needed
-	langSet := map[i18n.Language]bool{i18n.LangZH: true} // always include zh
+	langSet := map[i18n.Language]bool{i18n.LangEN: true} // default English
 	for _, sub := range subscribers {
 		for _, l := range sub.LanguageList() {
 			langSet[i18n.Language(l)] = true
@@ -232,7 +232,7 @@ func runOnce() error {
 		slog.Info("digest published", "emails_sent", sent)
 	} else {
 		// Print to stdout if no subscribers/email configured
-		fmt.Println(publisher.FormatDigest(digest, i18n.LangZH))
+		fmt.Println(publisher.FormatDigest(digest, i18n.LangEN))
 	}
 
 	return nil

@@ -17,7 +17,7 @@ type NewsLabels struct {
 func GetNewsLabels(lang Language) NewsLabels {
 	labels, ok := newsLabelMap[lang]
 	if !ok {
-		return newsLabelMap[LangZH]
+		return newsLabelMap[LangEN] // fallback to English
 	}
 	return labels
 }

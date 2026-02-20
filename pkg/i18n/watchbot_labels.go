@@ -21,7 +21,7 @@ type WatchLabels struct {
 func GetWatchLabels(lang Language) WatchLabels {
 	labels, ok := watchLabelMap[lang]
 	if !ok {
-		return watchLabelMap[LangZH]
+		return watchLabelMap[LangEN]
 	}
 	return labels
 }

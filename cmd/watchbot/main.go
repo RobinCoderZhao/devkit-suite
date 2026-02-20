@@ -402,6 +402,53 @@ func cmdServe() {
 		cancel()
 	}()
 
+	db, _ := openDB()
+	defer db.Close()
+
+	// ---- Benchmark Tracker background thread ----
+	bStore, err := benchmarks.NewStore(db)
+	if err == nil {
+		configPath := getEnv("BENCHMARK_CONFIG", "config/benchmark_models.yaml")
+		cfg, _ := benchmarks.LoadConfig(configPath)
+		if cfg == nil {
+			cfg = &benchmarks.Config{Models: benchmarks.DefaultModels}
+		}
+
+		fetcher := scraper.NewHTTPFetcher()
+		var bParsers []benchmarks.Parser
+		bParsers = append(bParsers, parsers.NewLLMStatsParser(fetcher, cfg.Models))
+
+		// Seed data if empty
+		count, _ := bStore.ScoreCount(ctx)
+		if count == 0 {
+			seeds := benchmarks.SeedFromScreenshot()
+			seedScraper := benchmarks.NewScraper(bStore, benchmarks.NewManualParser(seeds))
+			n, _ := seedScraper.ScrapeAll(ctx)
+			slog.Info("benchmark seed loaded", "scores", n)
+		}
+
+		bScraper := benchmarks.NewScraper(bStore, bParsers...)
+		tracker := benchmarks.NewTracker(bStore, bScraper, 12*time.Hour)
+		tracker.OnUpdate = func(report *benchmarks.BenchmarkReport) {
+			slog.Info("benchmark data updated",
+				"models", len(report.Models),
+				"date", report.Date,
+			)
+			// Render PNG for potential notification
+			pngPath := "/tmp/benchmark_report.png"
+			renderer := benchmarks.NewImageRenderer()
+			if err := renderer.RenderPNG(report, pngPath); err != nil {
+				slog.Error("benchmark render", "error", err)
+			} else {
+				slog.Info("benchmark PNG rendered", "path", pngPath)
+			}
+		}
+
+		go tracker.Run(ctx, cfg.Models)
+		slog.Info("benchmark tracker started", "interval", "12h")
+	}
+
+	// ---- WatchBot check loop ----
 	interval := 6 * time.Hour
 	slog.Info("WatchBot serving", "interval", interval)
 
