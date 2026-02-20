@@ -583,6 +583,40 @@ func cmdBenchmark() {
 		// Terminal table output
 		printTerminalTable(report)
 	}
+
+	// Send benchmark email if SMTP is configured and recipient specified
+	emailTo := getFlag("--email")
+	if emailTo == "" {
+		emailTo = os.Getenv("SMTP_TO")
+	}
+	emailCfg := notify.EmailConfig{
+		SMTPHost: os.Getenv("SMTP_HOST"),
+		SMTPPort: os.Getenv("SMTP_PORT"),
+		From:     os.Getenv("SMTP_FROM"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		To:       emailTo,
+	}
+	if emailTo != "" && emailCfg.Password != "" {
+		renderer := benchmarks.NewHTMLRenderer()
+		htmlTable := renderer.RenderHTML(report)
+		scoreCount, _ := bStore.ScoreCount(ctx)
+
+		data := notify.BenchmarkDigestData{
+			Report:     report,
+			HTMLTable:  htmlTable,
+			ScoreCount: scoreCount,
+			Date:       date,
+		}
+		formatter := notify.NewBenchmarkEmailFormatter()
+		msg := formatter.Format(data)
+
+		emailNotifier := notify.NewEmailNotifierForRecipient(emailCfg, emailTo)
+		if err := emailNotifier.Send(ctx, msg); err != nil {
+			slog.Error("benchmark email send failed", "email", emailTo, "error", err)
+		} else {
+			fmt.Printf("📧 Benchmark report emailed to %s\n", emailTo)
+		}
+	}
 }
 
 func printTerminalTable(report *benchmarks.BenchmarkReport) {

@@ -100,10 +100,11 @@ func New(dbPath string) (*Store, error) {
 }
 
 // SaveArticles stores fetched articles (skipping duplicates by URL).
-func (s *Store) SaveArticles(ctx context.Context, articles []sources.Article) (int, error) {
+// Returns the list of newly saved articles (not previously in DB).
+func (s *Store) SaveArticles(ctx context.Context, articles []sources.Article) ([]sources.Article, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer tx.Rollback()
 
@@ -112,11 +113,11 @@ func (s *Store) SaveArticles(ctx context.Context, articles []sources.Article) (i
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer stmt.Close()
 
-	saved := 0
+	var newArticles []sources.Article
 	for _, a := range articles {
 		tags, _ := json.Marshal(a.Tags)
 		result, err := stmt.ExecContext(ctx, a.Title, a.URL, a.Source, a.Author, a.Content, a.PublishedAt, a.FetchedAt, string(tags))
@@ -124,10 +125,12 @@ func (s *Store) SaveArticles(ctx context.Context, articles []sources.Article) (i
 			continue
 		}
 		affected, _ := result.RowsAffected()
-		saved += int(affected)
+		if affected > 0 {
+			newArticles = append(newArticles, a)
+		}
 	}
 
-	return saved, tx.Commit()
+	return newArticles, tx.Commit()
 }
 
 // SaveDigest stores a generated digest for a specific language.

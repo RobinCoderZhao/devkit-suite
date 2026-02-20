@@ -138,20 +138,26 @@ func runOnce() error {
 	}
 	slog.Info("fetched articles", "count", len(articles))
 
-	// 3. Store articles
+	// 3. Store articles (returns only NEW articles not previously in DB)
 	db, err := store.New(cfg.DBPath)
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
 	defer db.Close()
 
-	saved, err := db.SaveArticles(ctx, articles)
+	newArticles, err := db.SaveArticles(ctx, articles)
 	if err != nil {
 		slog.Warn("failed to save some articles", "error", err)
 	}
-	slog.Info("saved articles", "new", saved, "total", len(articles))
+	slog.Info("saved articles", "new", len(newArticles), "total", len(articles))
 
-	// 4. Analyze with LLM
+	// Skip analysis if no new articles (avoid duplicate emails and wasted tokens)
+	if len(newArticles) == 0 {
+		slog.Info("no new articles since last run, skipping analysis")
+		return nil
+	}
+
+	// 4. Analyze ONLY new articles with LLM
 	if cfg.LLM.APIKey == "" {
 		slog.Warn("LLM API key not set, skipping analysis")
 		return nil
@@ -164,7 +170,7 @@ func runOnce() error {
 	defer llmClient.Close()
 
 	a := analyzer.NewAnalyzer(llmClient)
-	digest, err := a.Analyze(ctx, articles)
+	digest, err := a.Analyze(ctx, newArticles)
 	if err != nil {
 		return fmt.Errorf("analyze articles: %w", err)
 	}
