@@ -1,6 +1,34 @@
+# Build outputs
 bin/
-data/
-.env
-*.png
 newsbot
 watchbot
+
+# Data
+data/
+
+# Secrets
+.env
+.env.*.bak
+
+# Generated
+*.png
+
+# === Private docs (product/commercial/dev plans) ===
+# Product designs
+docs/product_1_newsbot.md
+docs/product_2_devkit.md
+docs/product_3_mcp_template.md
+docs/product_4_watchbot.md
+docs/product_detail_overview.md
+docs/product_evaluation.md
+
+# Commercial strategy
+docs/commercialization_roadmap.md
+docs/go_to_market_strategy.md
+docs/brainstorm_directions.md
+
+# Development plans
+docs/dev_plan_phase0_shared.md
+docs/dev_plan_phase1_newsbot.md
+docs/dev_plan_phase2_devkit.md
+docs/dev_plan_phase3_mcp_template.md
