@@ -32,3 +32,5 @@ docs/dev_plan_phase0_shared.md
 docs/dev_plan_phase1_newsbot.md
 docs/dev_plan_phase2_devkit.md
 docs/dev_plan_phase3_mcp_template.md
+frontend/
+docs/Ops_Manual.md
