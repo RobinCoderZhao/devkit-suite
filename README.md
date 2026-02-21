@@ -1,195 +1,105 @@
-# DevKit Suite
+# DevKit Suite — SaaS Intelligence Command Center
 
-**AI-powered developer toolkit** — news digest, competitor monitoring, and benchmark tracking in a single Go binary.
+**AI-powered developer toolkit** — news digest, competitor monitoring, and benchmark tracking, now evolved into a fully-fledged SaaS web application.
 
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/RobinCoderZhao/devkit-suite?style=social)](https://github.com/RobinCoderZhao/devkit-suite)
 
 ---
 
-## 🚀 Three Products, One Repo
+## 🚀 The Three Pillars of Intelligence
 
-| Product | What it does | Status |
+DevKit Suite has evolved from standalone CLI scripts into a centralized, beautifully designed web platform with multi-tenant capabilities, subscriptions, and an intuitive dashboard.
+
+| Module | What it does | Status |
 |---------|-------------|--------|
-| **📰 NewsBot** | AI-curated tech news digest → multi-language email | ✅ Production |
-| **🔍 WatchBot** | Competitor website monitoring + AI change analysis | ✅ Production |
-| **📊 Benchmark Tracker** | Live AI model benchmark scraping + comparison report | ✅ Production |
-
-### How They Work Together
-
-```
-NewsBot (free)  ──→  Build email list  ──→  WatchBot (SaaS)
-                                              ↑
-Benchmark Tracker (free)  ──→  SEO traffic ──┘
-```
+| **🔍 WatchBot** | Core product. Competitor website monitoring, HTML Diffing, and Gemini-powered change summaries. | ✅ Production SaaS |
+| **📰 NewsBot** | Daily AI-curated tech news digest, translated into 6 languages. Displayed as an intelligence waterfall feed. | ✅ Production |
+| **📊 Benchmark** | Live-scraped AI model benchmarks tracker. Generates auto-updating comparative visual reports. | ✅ Production |
 
 ---
 
-## ⚡ Quick Start
+## ✨ Key SaaS Features
 
-### 1. Clone & Build
-
-```bash
-git clone https://github.com/RobinCoderZhao/devkit-suite.git
-cd devkit-suite
-go build -o bin/newsbot ./cmd/newsbot
-go build -o bin/watchbot ./cmd/watchbot
-```
-
-### 2. Configure
-
-```bash
-cp .env.example .env
-# Edit .env with your API keys:
-#   LLM_PROVIDER=minimax       (or openai, gemini, claude)
-#   LLM_API_KEY=sk-xxx
-#   SMTP_HOST=smtp.gmail.com
-#   SMTP_FROM=you@gmail.com
-#   SMTP_PASSWORD=xxxx
-source .env
-```
-
-### 3. Run
-
-```bash
-# 📰 Subscribe to daily AI news
-./bin/newsbot subscribe --email=you@email.com --lang=en
-./bin/newsbot run
-
-# 🔍 Monitor a competitor
-./bin/watchbot add https://competitor.com/pricing
-./bin/watchbot check
-
-# 📊 Generate benchmark report
-./bin/watchbot benchmark --scrape=live --email=you@email.com
-```
-
----
-
-## 📰 NewsBot — AI News Digest
-
-Aggregates from **28 sources** across 5 categories, analyzes with LLM, translates to 6 languages, delivers via email.
-
-**Sources include:** HackerNews, TechCrunch, Wired, VentureBeat, Reddit ML, Anthropic Blog, 机器之心, 量子位, and more.
-
-**Key Features:**
-
-- 🔄 Smart deduplication — only new articles are analyzed (saves tokens)
-- 🌍 Auto-language detection via IP geolocation
-- 📧 Beautiful HTML email newsletters
-- 💰 Cost: ~$0.01 per digest (MiniMax M2.5)
-
-```bash
-./bin/newsbot subscribe --email=team@company.com --name=Team --lang=zh
-./bin/newsbot run    # Fetch → Analyze → Translate → Email
-```
-
----
-
-## 🔍 WatchBot — Competitor Monitor
-
-Tracks competitor websites for changes, uses LLM to explain what changed and why it matters.
-
-**Key Features:**
-
-- 🕸️ Auto-discovers key pages (/pricing, /features, /blog)
-- 📊 HTML diff + LLM analysis ("price dropped 20%")
-- 📧 Alert emails with change summary
-- ⏰ Scheduled monitoring (every 6h in `serve` mode)
-
-```bash
-./bin/watchbot add https://vercel.com/pricing
-./bin/watchbot add https://competitor.com/features
-./bin/watchbot check                                # One-time check
-./bin/watchbot serve                                # Continuous monitoring
-```
-
----
-
-## 📊 Benchmark Tracker
-
-Live-scrapes AI model benchmarks from [llm-stats.com](https://llm-stats.com), generates professional comparison reports.
-
-**Key Features:**
-
-- 🔴 Highlights top scores per benchmark
-- 📊 16 benchmarks × 8+ models (Gemini, GPT, Claude, etc.)
-- 🖼️ PNG output for social sharing
-- 📧 HTML email delivery
-- 🔄 Auto decimal→percentage conversion
-
-```bash
-./bin/watchbot benchmark --scrape=live --output=png --file=report.png
-./bin/watchbot benchmark --scrape=live --email=you@email.com
-```
+1. **Frictionless Onboarding**: Sign up and select an industry to instantly auto-provision curated competitors to track.
+2. **Global Battlecards**: A high-level, dashboard matrix visualizing all tracked competitors and their severity scores for the week.
+3. **Smart Timeline & Diff Viewer**: Drill down into specific competitor changes. See the exact HTML/Text diffs side-by-side with an LLM-generated tactical breakdown.
+4. **Smart Alerts**: Pro users can define custom alert rules (e.g., `Severity >= High` or `Contains "pricing"`).
+5. **Stripe Integration**: Automated checkout sessions, subscription tier gatekeeping, and lifecycle webhooks.
 
 ---
 
 ## 🏗️ Architecture
 
-```
+The monorepo structure contains both the high-performance Go backend and the highly interactive Next.js frontend frontend.
+
+```text
 devkit-suite/
-├── cmd/
-│   ├── newsbot/        # AI news digest CLI
-│   ├── watchbot/       # Competitor monitor + benchmark CLI
-│   └── devkit/         # Developer tools CLI
-├── pkg/                # Shared libraries (importable)
-│   ├── llm/            # Multi-model LLM client (OpenAI/MiniMax/Gemini)
-│   ├── scraper/        # Web scraper with Jina Reader
-│   ├── notify/         # Email/Telegram/Webhook notifications
-│   ├── i18n/           # 6-language i18n + IP geolocation
-│   ├── benchmarks/     # Benchmark tracker + image renderer
-│   │   └── parsers/    # llm-stats.com table parsers
-│   ├── differ/         # Text diff engine
-│   └── storage/        # Storage abstraction
+├── cmd/                # Go daemon entrypoints
+│   ├── api/            # 🚀 New: REST API Server (port 8080)
+│   ├── newsbot/        # News crawler job
+│   ├── watchbot/       # Page crawler + diff analyzer job
+│   └── devkit/         # Legacy Dev tools
+├── frontend/           # 🚀 New: Next.js 15 App Router Frontend
+│   ├── src/app/        # Pages (Dashboard, Onboarding, Pricing, Settings)
+│   └── src/components/ # Shadcn UI and custom compoents
 ├── internal/           # Private business logic
-├── deploy/             # One-click deployment scripts
-├── docs/               # Product & architecture docs
-└── .env                # Configuration
+│   ├── api/            # REST HTTP Handlers, Auth, Stripe Webhooks
+│   ├── user/           # Multi-tenant user management
+│   ├── watchbot/       # Pipeline, DB stores, Rules Engine
+│   └── newsbot/        
+├── pkg/                # Shared internal libraries (LLM, Notifications, Scraper)
+├── docs/               # Technical and Product Documentation
+└── deploy/             # One-click shell deployment scripts
 ```
 
-## 🔧 Supported LLM Providers
+## ⚡ Quick Start (Local Development)
 
-| Provider | Models | Input / 1M tokens | Output / 1M tokens |
-|----------|--------|-------------------|---------------------|
-| **Google** | Gemini 2.5 Flash Lite | $0.10 | $0.40 |
-| | Gemini 2.5 Flash | $0.30 | $2.50 |
-| | Gemini 3 Pro | $2.00 | $12.00 |
-| **OpenAI** | GPT-4.1 nano | $0.20 | $0.80 |
-| | GPT-5 mini | $0.25 | $2.00 |
-| | GPT-5.2 | $1.75 | $14.00 |
-| **Anthropic** | Claude Haiku 4.5 | $1.00 | $5.00 |
-| | Claude Sonnet 4.5 | $3.00 | $15.00 |
-| **MiniMax** | M2.5 | $0.29 | $1.17 |
-| **Alibaba** | qwen-turbo | $0.05 | $0.20 |
-
-> 📋 Full pricing table → [docs/llm_pricing.md](docs/llm_pricing.md)
-
----
-
-## 🚀 One-Click Deploy (Aliyun Singapore ECS)
+### 1. Backend (Go API & Workers)
 
 ```bash
-ssh root@<your-server>
-git clone https://github.com/RobinCoderZhao/devkit-suite.git /tmp/devkit
-bash /tmp/devkit/deploy/setup.sh    # ~2-3 minutes
-nano /opt/devkit-suite/.env         # Add API keys
-sudo systemctl start newsbot watchbot
+git clone https://github.com/RobinCoderZhao/devkit-suite.git
+cd devkit-suite
+
+# Set up configuration
+cp .env.example .env
+# Edit .env with your LLM_API_KEY, STRIPE_SECRET_KEY, etc.
+
+# Run the API server
+go run ./cmd/api
+
+# In a separate terminal, run the workers manually if needed
+go run ./cmd/watchbot check
 ```
 
-> **Why Singapore?** OpenAI/Gemini APIs don't support Hong Kong. Singapore has direct access to all major LLM APIs. See [deployment guide](docs/aliyun_sg_deployment.md).
+### 2. Frontend (Next.js)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Navigate to `http://localhost:3000` to interact with the SaaS platform.
 
 ---
 
-## 📄 License
+## 🚀 One-Click Production Deploy
 
-[MIT](LICENSE) — free for personal and commercial use.
+Deploy the entire suite (API, Frontend, Workers, Systemd Services, SQLite Databases) securely to a Linux VPS (e.g., Aliyun ECS).
 
-## 🤝 Contributing
+```bash
+git clone https://github.com/RobinCoderZhao/devkit-suite.git /tmp/devkit
+bash /tmp/devkit/deploy/setup.sh    # Installs Go, Node, Nginx, configures systemd
+```
 
-Issues and PRs are welcome! See the [docs/](docs/) directory for architecture and development plans.
+> **Note**: For comprehensive instructions on operating the application, refer to the [User Manual](docs/user_manual.md) (Chinese).
 
 ---
 
-**Built with ❤️ by [RobinCoderZhao](https://github.com/RobinCoderZhao)**
+## 📄 License & Contributing
+
+[MIT](LICENSE) — free for personal and commercial use. Issues and PRs are welcome!
+
+Built with ❤️ by [RobinCoderZhao](https://github.com/RobinCoderZhao)

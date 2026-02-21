@@ -1,0 +1,129 @@
+{
+  "Navigation": {
+    "login": "登录",
+    "register": "立即开始",
+    "dashboard": "WatchBot",
+    "newsbot": "智能情报",
+    "settings": "设置",
+    "logout": "退出登录"
+  },
+  "Landing": {
+    "badge": "DevKit Suite 企业版",
+    "title": "追踪竞对动态。掌握 AI 前沿。",
+    "subtitle": "专为 SaaS 创始人和开发者打造的终极情报指挥中心。在一个统一的看板中追踪价格变动，过滤全球 AI 趋势。",
+    "cta_start": "免费开始使用",
+    "cta_github": "GitHub 关注",
+    "feature1_title": "可视化差异对比",
+    "feature1_desc": "瞬间定位竞品定价页面上精确的 HTML 改动。",
+    "feature2_title": "AI 智能摘要",
+    "feature2_desc": "获取关于“改变了什么”以及“为什么重要”的大模型提炼报告。",
+    "feature3_title": "全球新闻流",
+    "feature3_desc": "每日精选的 AI 资讯瀑布流，自动多语言翻译。"
+  },
+  "Onboarding": {
+    "title": "欢迎加入！",
+    "subtitle": "让我们配置您的指挥中心。您正在跟踪哪个行业？",
+    "industries": {
+      "devtools": {
+        "label": "开发者工具",
+        "desc": "Vercel, Supabase, Cursor"
+      },
+      "llms": {
+        "label": "AI大模型 & APIs",
+        "desc": "OpenAI, Anthropic, Gemini"
+      },
+      "saas": {
+        "label": "B2B企业软件",
+        "desc": "Stripe, Notion, Linear"
+      }
+    },
+    "configuring": "正在配置工作空间...",
+    "continue": "继续"
+  },
+  "WatchBot": {
+    "loading": "加载竞品卡片中...",
+    "title": "竞品情报卡",
+    "subtitle": "您关注的竞争对手全景概览。",
+    "empty": {
+      "title": "暂无监控对象",
+      "desc": "添加一个域名以立即开始跟踪他们的公开变化。",
+      "cta": "重新运行向导"
+    },
+    "card": {
+      "no_changes": "尚未发生改变",
+      "pages_tracked": "跟踪页面数",
+      "activity": "状态",
+      "active": "活跃",
+      "latest_shift": "最新变动",
+      "baseline": "目前处于基线监控中。",
+      "view_timeline": "查看时间线 & 差异",
+      "shift_detected": "检测到变更",
+      "raw_diff": "原生包代码差异"
+    },
+    "Timeline": {
+      "loading": "加载时间线中...",
+      "not_found": "未找到竞争对手或拒绝访问。",
+      "empty": {
+        "title": "一切正常",
+        "desc": "此竞争对手尚未检测到任何更改。"
+      },
+      "card": {
+        "shift_detected": "检测到变更",
+        "raw_diff": "原生代码差异"
+      }
+    }
+  },
+  "NewsBot": {
+    "loading": "加载情报信息流中...",
+    "title": "AI 新闻流",
+    "subtitle": "来自全球顶级来源的每日精选AI情报流。",
+    "read_original": "阅读原文",
+    "no_signals": "没有检测到活跃的新闻信号。"
+  },
+  "Settings": {
+    "title": "设置",
+    "subtitle": "管理您的账户设置、账单和告警首选项。",
+    "loading_rules": "加载规则中...",
+    "tabs": {
+      "billing": "账单与订阅",
+      "alerts": "智能告警"
+    },
+    "billing": {
+      "title": "订阅计划",
+      "current": "您目前使用的是 {plan} 计划。",
+      "free": "免费版",
+      "pro": "专业版",
+      "active": "生效中",
+      "free_desc": "升级到专业版以解锁智能告警并跟踪更多竞争对手。",
+      "pro_desc": "您可以完全访问实时智能告警和最多100个竞争对手。",
+      "upgrade": "升级计划",
+      "manage": "管理账单"
+    },
+    "alerts": {
+      "title": "配置智能告警",
+      "desc": "定义何时WatchBot应该给您发送通知的条件。",
+      "pro_feature": "专业版功能",
+      "pro_feature_desc": "智能告警仅在专业版中可用。升级以接收重大变更的实时通知。",
+      "failed_create": "创建规则失败",
+      "active": "激活的规则",
+      "no_rules": "尚未配置任何警告规则。",
+      "rule_if": "如果",
+      "rule_eq": "等于",
+      "rule_then": "执行动作:",
+      "remove": "移除",
+      "form": {
+        "cond_type": "条件类型",
+        "val_severity": "严重程度",
+        "val_keyword": "包含关键词",
+        "target": "目标值",
+        "high": "高及以上",
+        "medium": "中等及以上",
+        "low": "所有更改",
+        "action": "响应动作",
+        "act_email": "发送电子邮件",
+        "act_webhook": "触发Webhook",
+        "add": "添加规则"
+      }
+    }
+  }
+}

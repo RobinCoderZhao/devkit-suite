@@ -1,218 +1,0 @@
-[38;5;79m2026-02-20 23:02:04 - Installing pre-requisites[0m
-
-WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
-
-Hit:1 http://mirrors.cloud.aliyuncs.com/ubuntu jammy InRelease
-Hit:2 http://mirrors.cloud.aliyuncs.com/ubuntu jammy-updates InRelease
-Hit:3 http://mirrors.cloud.aliyuncs.com/ubuntu jammy-backports InRelease
-Hit:4 http://mirrors.cloud.aliyuncs.com/ubuntu jammy-security InRelease
-Reading package lists...
-Building dependency tree...
-Reading state information...
-15 packages can be upgraded. Run 'apt list --upgradable' to see them.
-
-WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
-
-Reading package lists...
-Building dependency tree...
-Reading state information...
-ca-certificates is already the newest version (20240203~22.04.1).
-curl is already the newest version (7.81.0-1ubuntu1.21).
-gnupg is already the newest version (2.2.27-3ubuntu2.5).
-gnupg set to manually installed.
-The following NEW packages will be installed:
-  apt-transport-https
-0 upgraded, 1 newly installed, 0 to remove and 15 not upgraded.
-Need to get 1,510 B of archives.
-After this operation, 170 kB of additional disk space will be used.
-Get:1 http://mirrors.cloud.aliyuncs.com/ubuntu jammy-updates/universe amd64 apt-transport-https all 2.4.14 [1,510 B]
-debconf: unable to initialize frontend: Dialog
-debconf: (TERM is not set, so the dialog frontend is not usable.)
-debconf: falling back to frontend: Readline
-debconf: unable to initialize frontend: Readline
-debconf: (This frontend requires a controlling tty.)
-debconf: falling back to frontend: Teletype
-dpkg-preconfigure: unable to re-open stdin: 
-Fetched 1,510 B in 0s (140 kB/s)
-Selecting previously unselected package apt-transport-https.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 81545 files and directories currently installed.)
-Preparing to unpack .../apt-transport-https_2.4.14_all.deb ...
-Unpacking apt-transport-https (2.4.14) ...
-Setting up apt-transport-https (2.4.14) ...
-
-Running kernel seems to be up-to-date.
-
-Services to be restarted:
- systemctl restart aegis.service
- systemctl restart atd.service
- systemctl restart chrony.service
- systemctl restart cron.service
- systemctl restart multipathd.service
- systemctl restart packagekit.service
- systemctl restart polkit.service
- systemctl restart rsyslog.service
- systemctl restart serial-getty@ttyS0.service
- systemctl restart snapd.service
- systemctl restart ssh.service
- systemctl restart systemd-journald.service
- systemctl restart systemd-networkd.service
- systemctl restart systemd-resolved.service
- systemctl restart systemd-udevd.service
- systemctl restart tuned.service
- systemctl restart udisks2.service
-
-Service restarts being deferred:
- systemctl restart ModemManager.service
- /etc/needrestart/restart.d/dbus.service
- systemctl restart getty@tty1.service
- systemctl restart networkd-dispatcher.service
- systemctl restart systemd-logind.service
- systemctl restart unattended-upgrades.service
-
-No containers need to be restarted.
-
-No user sessions are running outdated binaries.
-
-No VM guests are running outdated hypervisor (qemu) binaries on this host.
-
-WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
-
-Hit:1 http://mirrors.cloud.aliyuncs.com/ubuntu jammy InRelease
-Hit:2 http://mirrors.cloud.aliyuncs.com/ubuntu jammy-updates InRelease
-Hit:3 http://mirrors.cloud.aliyuncs.com/ubuntu jammy-backports InRelease
-Hit:4 http://mirrors.cloud.aliyuncs.com/ubuntu jammy-security InRelease
-Get:5 https://deb.nodesource.com/node_20.x nodistro InRelease [12.1 kB]
-Get:6 https://deb.nodesource.com/node_20.x nodistro/main amd64 Packages [13.6 kB]
-Fetched 25.8 kB in 0s (57.2 kB/s)
-Reading package lists...
-Building dependency tree...
-Reading state information...
-15 packages can be upgraded. Run 'apt list --upgradable' to see them.
-[1;34m2026-02-20 23:02:10 - Repository configured successfully.[0m
-[38;5;79m2026-02-20 23:02:10 - To install Node.js, run: apt install nodejs -y[0m
-[38;5;79m2026-02-20 23:02:10 - You can use N|solid Runtime as a node.js alternative[0m
-[1;32m2026-02-20 23:02:10 - To install N|solid Runtime, run: apt install nsolid -y 
-[0m
-Reading package lists...
-Building dependency tree...
-Reading state information...
-The following NEW packages will be installed:
-  nodejs
-0 upgraded, 1 newly installed, 0 to remove and 15 not upgraded.
-Need to get 32.0 MB of archives.
-After this operation, 197 MB of additional disk space will be used.
-Get:1 https://deb.nodesource.com/node_20.x nodistro/main amd64 nodejs amd64 20.20.0-1nodesource1 [32.0 MB]
-debconf: unable to initialize frontend: Dialog
-debconf: (TERM is not set, so the dialog frontend is not usable.)
-debconf: falling back to frontend: Readline
-debconf: unable to initialize frontend: Readline
-debconf: (This frontend requires a controlling tty.)
-debconf: falling back to frontend: Teletype
-dpkg-preconfigure: unable to re-open stdin: 
-Fetched 32.0 MB in 2s (15.4 MB/s)
-Selecting previously unselected package nodejs.
-(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 81549 files and directories currently installed.)
-Preparing to unpack .../nodejs_20.20.0-1nodesource1_amd64.deb ...
-Unpacking nodejs (20.20.0-1nodesource1) ...
-Setting up nodejs (20.20.0-1nodesource1) ...
-Processing triggers for man-db (2.10.2-1) ...
-
-Running kernel seems to be up-to-date.
-
-Services to be restarted:
- systemctl restart aegis.service
- systemctl restart atd.service
- systemctl restart chrony.service
- systemctl restart cron.service
- systemctl restart multipathd.service
- systemctl restart packagekit.service
- systemctl restart polkit.service
- systemctl restart rsyslog.service
- systemctl restart serial-getty@ttyS0.service
- systemctl restart snapd.service
- systemctl restart ssh.service
- systemctl restart systemd-journald.service
- systemctl restart systemd-networkd.service
- systemctl restart systemd-resolved.service
- systemctl restart systemd-udevd.service
- systemctl restart tuned.service
- systemctl restart udisks2.service
-
-Service restarts being deferred:
- systemctl restart ModemManager.service
- /etc/needrestart/restart.d/dbus.service
- systemctl restart getty@tty1.service
- systemctl restart networkd-dispatcher.service
- systemctl restart systemd-logind.service
- systemctl restart unattended-upgrades.service
-
-No containers need to be restarted.
-
-No user sessions are running outdated binaries.
-
-No VM guests are running outdated hypervisor (qemu) binaries on this host.
-wal
-wal
-🔄 拉取最新代码...
-🔨 重新构建 Go Services...
-📦 构建 Frontend (Next.js)...
-npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
-
-added 739 packages, and audited 740 packages in 37s
-
-238 packages are looking for funding
-  run `npm fund` for details
-
-16 vulnerabilities (3 moderate, 13 high)
-
-To address issues that do not require attention, run:
-  npm audit fix
-
-To address all issues (including breaking changes), run:
-  npm audit fix --force
-
-Run `npm audit` for details.
-npm notice
-npm notice New major version of npm available! 10.8.2 -> 11.10.1
-npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.1
-npm notice To update run: npm install -g npm@11.10.1
-npm notice
-
-> frontend@0.1.0 build
-> next build
-
-Attention: Next.js now collects completely anonymous telemetry regarding usage.
-This information is used to shape Next.js' roadmap and prioritize features.
-You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-https://nextjs.org/telemetry
-
-▲ Next.js 16.1.6 (Turbopack)
-
-  Creating an optimized production build ...
-Turbopack build encountered 1 warnings:
-[next]/internal/font/google/inter_5972bc34.module.css
-Error while requesting resource
-There was an issue establishing a connection while requesting https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap
-
-Import trace:
-  Server Component:
-    [next]/internal/font/google/inter_5972bc34.module.css
-    [next]/internal/font/google/inter_5972bc34.js
-    ./src/app/layout.tsx
-
-
-
-> Build error occurred
-Error: Turbopack build failed with 1 errors:
-[next]/internal/font/google/inter_5972bc34.module.css
-next/font: error:
-Failed to fetch `Inter` from Google Fonts.
-
-Import trace:
-  Server Component:
-    [next]/internal/font/google/inter_5972bc34.module.css
-    [next]/internal/font/google/inter_5972bc34.js
-    ./src/app/layout.tsx
-
-
-    at ignore-listed frames

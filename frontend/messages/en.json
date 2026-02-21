@@ -1,0 +1,129 @@
+{
+  "Navigation": {
+    "login": "Sign In",
+    "register": "Get Started",
+    "dashboard": "WatchBot",
+    "newsbot": "NewsBot",
+    "settings": "Settings",
+    "logout": "Log Out"
+  },
+  "Landing": {
+    "badge": "DevKit Suite SaaS",
+    "title": "Monitor Competitors. Digest AI News.",
+    "subtitle": "The ultimate intelligence command center for SaaS founders and developers. Track pricing changes and filter global AI trends in one unified dashboard.",
+    "cta_start": "Start for free",
+    "cta_github": "Star on GitHub",
+    "feature1_title": "Visual Diff Viewer",
+    "feature1_desc": "Spot precise HTML changes on competitor pricing pages instantly.",
+    "feature2_title": "AI Summaries",
+    "feature2_desc": "Get a simple English explanation of what changed and why it matters.",
+    "feature3_title": "Global News Feed",
+    "feature3_desc": "A daily curated waterfall of AI news translated into 6 languages."
+  },
+  "Onboarding": {
+    "title": "Welcome aboard!",
+    "subtitle": "Let's get your command center ready. What industry are you tracking?",
+    "industries": {
+      "devtools": {
+        "label": "Developer Tools",
+        "desc": "Vercel, Supabase, Cursor"
+      },
+      "llms": {
+        "label": "AI Models & APIs",
+        "desc": "OpenAI, Anthropic, Gemini"
+      },
+      "saas": {
+        "label": "B2B SaaS",
+        "desc": "Stripe, Notion, Linear"
+      }
+    },
+    "configuring": "Configuring workspace...",
+    "continue": "Continue"
+  },
+  "WatchBot": {
+    "loading": "Loading Battlecards...",
+    "title": "Battlecards",
+    "subtitle": "Your global overview of tracked competitors.",
+    "empty": {
+      "title": "No Competitors Watched",
+      "desc": "Add a domain to start tracking their public shifts immediately.",
+      "cta": "Run Onboarding Again"
+    },
+    "card": {
+      "no_changes": "NO CHANGES YET",
+      "pages_tracked": "Pages Tracked",
+      "activity": "Activity",
+      "active": "Active",
+      "latest_shift": "Latest Shift",
+      "baseline": "Currently baseline monitoring.",
+      "view_timeline": "View Timeline & Diffs",
+      "shift_detected": "Shift Detected",
+      "raw_diff": "raw_diff.patch"
+    },
+    "Timeline": {
+      "loading": "Loading Timeline...",
+      "not_found": "Competitor not found or access denied.",
+      "empty": {
+        "title": "All Clear",
+        "desc": "No changes detected yet for this competitor."
+      },
+      "card": {
+        "shift_detected": "Shift Detected",
+        "raw_diff": "raw_diff.patch"
+      }
+    }
+  },
+  "NewsBot": {
+    "loading": "Loading Intelligence Feed...",
+    "title": "NewsBot Stream",
+    "subtitle": "Your daily, curated AI intelligence feed from top global sources.",
+    "read_original": "Read Original",
+    "no_signals": "No active news signals detected."
+  },
+  "Settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account settings, billing, and alert preferences.",
+    "loading_rules": "Loading rules...",
+    "tabs": {
+      "billing": "Billing & Plan",
+      "alerts": "Smart Alerts"
+    },
+    "billing": {
+      "title": "Subscription Plan",
+      "current": "You are currently on the {plan} plan.",
+      "free": "Free Plan",
+      "pro": "Pro Plan",
+      "active": "Active",
+      "free_desc": "Upgrade to Pro to unlock Smart Alerts and track more competitors.",
+      "pro_desc": "You have full access to real-time Smart Alerts and up to 100 competitors.",
+      "upgrade": "Upgrade Plan",
+      "manage": "Manage Billing"
+    },
+    "alerts": {
+      "title": "Configure Smart Alerts",
+      "desc": "Define criteria for when WatchBot should send you notifications.",
+      "pro_feature": "Pro Feature",
+      "pro_feature_desc": "Smart Alerts are only available on the Pro plan. Upgrade to receive real-time notifications for critical changes.",
+      "failed_create": "Failed to create rule",
+      "active": "Active Rules",
+      "no_rules": "No alert rules configured yet.",
+      "rule_if": "If",
+      "rule_eq": "equals",
+      "rule_then": "Then DO:",
+      "remove": "Remove",
+      "form": {
+        "cond_type": "Condition Type",
+        "val_severity": "Severity Level",
+        "val_keyword": "Contains Keyword",
+        "target": "Target Value",
+        "high": "High & Above",
+        "medium": "Medium & Above",
+        "low": "All Changes",
+        "action": "Action",
+        "act_email": "Send Email",
+        "act_webhook": "Trigger Webhook",
+        "add": "Add Rule"
+      }
+    }
+  }
+}

@@ -2,8 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Check, ShieldAlert } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/routing";
 import { useEffect, useState } from "react";
 
 export default function PricingPage() {

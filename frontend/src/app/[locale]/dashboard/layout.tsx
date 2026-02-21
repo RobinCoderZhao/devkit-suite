@@ -1,5 +1,6 @@
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { Eye, Settings, LayoutDashboard, Newspaper, LogOut } from "lucide-react";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function DashboardLayout({
     children,
@@ -28,7 +29,8 @@ export default function DashboardLayout({
                         Settings
                     </Link>
                 </nav>
-                <div className="border-t pt-4">
+                <div className="border-t pt-4 flex flex-col gap-2">
+                    <LanguageSwitcher />
                     <button className="flex items-center gap-2 px-2 py-2 text-sm font-medium rounded-md hover:bg-muted/60 transition-colors w-full text-left text-muted-foreground hover:text-foreground">
                         <LogOut className="w-4 h-4" />
                         Log Out
