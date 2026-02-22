@@ -3,11 +3,39 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    name TEXT DEFAULT '',
+    phone TEXT DEFAULT '',
+    company TEXT DEFAULT '',
     plan TEXT DEFAULT 'free', -- 'free', 'starter', 'pro'
+    plan_status TEXT DEFAULT 'active', -- 'active', 'canceled', 'expired'
+    current_period_end DATETIME,
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+
+CREATE TABLE IF NOT EXISTS verification_codes (
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    purpose TEXT NOT NULL, -- 'register' or 'reset_password'
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(email, purpose)
+);
+
+CREATE TABLE IF NOT EXISTS order_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    gateway TEXT NOT NULL,           -- 'stripe' | 'alipay'
+    trade_no TEXT UNIQUE NOT NULL,   -- External transaction ID
+    amount INTEGER NOT NULL,         -- Amount in cents
+    status TEXT NOT NULL,            -- 'pending', 'paid', 'failed'
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    paid_at DATETIME,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 
 -- 2. WatchBot: Competitors & Pages
 CREATE TABLE IF NOT EXISTS competitors (
@@ -15,6 +43,7 @@ CREATE TABLE IF NOT EXISTS competitors (
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     domain TEXT NOT NULL,
+    status TEXT DEFAULT 'active', -- 'active', 'frozen'
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, domain)
@@ -27,6 +56,8 @@ CREATE TABLE IF NOT EXISTS alert_rules (
     rule_type TEXT NOT NULL, -- 'severity', 'keyword'
     rule_value TEXT NOT NULL, -- 'high', 'pricing'
     action TEXT NOT NULL, -- 'email', 'webhook'
+    target_type TEXT DEFAULT 'email',
+    target_id TEXT DEFAULT '',
     is_active BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,

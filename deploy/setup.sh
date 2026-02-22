@@ -285,8 +285,20 @@ build_app() {
     ${GO_BIN} build -trimpath -ldflags="-s -w" -o bin/newsbot ./cmd/newsbot
     ${GO_BIN} build -trimpath -ldflags="-s -w" -o bin/devkit ./cmd/devkit
     ${GO_BIN} build -trimpath -ldflags="-s -w" -o bin/watchbot ./cmd/watchbot
+    ${GO_BIN} build -trimpath -ldflags="-s -w" -o bin/api ./cmd/api
 
-    log "构建完成: newsbot=$(du -h bin/newsbot | cut -f1), devkit=$(du -h bin/devkit | cut -f1), watchbot=$(du -h bin/watchbot | cut -f1)"
+    log "后端构建完成: newsbot, devkit, watchbot, api"
+
+    if command -v npm &> /dev/null; then
+        log "开始构建 Frontend (Next.js)..."
+        cd "${APP_DIR}/frontend"
+        npm install
+        npm run build
+        cd "${APP_DIR}"
+        log "前端构建完成"
+    else
+        warn "未检测到 npm, 必须手动构建 frontend!"
+    fi
 }
 
 # ===========================
@@ -300,36 +312,8 @@ init_database() {
     if [ -f "${DB_PATH}" ]; then
         log "NewsBot 数据库已存在: ${DB_PATH}"
     else
-        sqlite3 "${DB_PATH}" << 'SQLEOF'
-PRAGMA journal_mode=WAL;
-
-CREATE TABLE IF NOT EXISTS articles (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    title       TEXT NOT NULL,
-    url         TEXT NOT NULL UNIQUE,
-    source      TEXT NOT NULL,
-    author      TEXT,
-    content     TEXT,
-    published_at TIMESTAMP,
-    fetched_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    tags        TEXT
-);
-
-CREATE TABLE IF NOT EXISTS digests (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    date         TEXT NOT NULL UNIQUE,
-    headlines    TEXT NOT NULL,
-    summary      TEXT,
-    tokens_used  INTEGER DEFAULT 0,
-    cost         REAL DEFAULT 0,
-    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_articles_source ON articles(source);
-CREATE INDEX IF NOT EXISTS idx_articles_fetched ON articles(fetched_at);
-CREATE INDEX IF NOT EXISTS idx_digests_date ON digests(date);
-SQLEOF
-        log "NewsBot 数据库初始化完成: ${DB_PATH}"
+        sqlite3 "${DB_PATH}" 'PRAGMA journal_mode=WAL;'
+        log "NewsBot 数据库初始化完成: ${DB_PATH} (表由程序自动创建)"
     fi
 
     # WatchBot DB (V2 — tables auto-created by Go code, just ensure file exists)
