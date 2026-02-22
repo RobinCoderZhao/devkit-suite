@@ -41,11 +41,14 @@ CREATE TABLE IF NOT EXISTS digests (
 );
 
 CREATE TABLE IF NOT EXISTS subscribers (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    email      TEXT NOT NULL UNIQUE,
-    languages  TEXT NOT NULL DEFAULT 'zh',
-    active     INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER DEFAULT 0,
+    target_type TEXT NOT NULL,
+    target_id   TEXT NOT NULL,
+    languages   TEXT NOT NULL DEFAULT 'zh',
+    active      INTEGER DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(target_type, target_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_articles_source ON articles(source);
@@ -53,13 +56,15 @@ CREATE INDEX IF NOT EXISTS idx_articles_fetched ON articles(fetched_at);
 CREATE INDEX IF NOT EXISTS idx_digests_date ON digests(date);
 `
 
-// Subscriber represents an email subscriber.
+// Subscriber represents a notification subscriber.
 type Subscriber struct {
-	ID        int
-	Email     string
-	Languages string // comma-separated: "zh,en"
-	Active    bool
-	CreatedAt time.Time
+	ID         int       `json:"id"`
+	UserID     int       `json:"user_id"`
+	TargetType string    `json:"target_type"`
+	TargetID   string    `json:"target_id"`
+	Languages  string    `json:"languages"` // comma-separated: "zh,en"
+	Active     bool      `json:"active"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 // LanguageList returns the subscriber's languages as a slice.
@@ -180,27 +185,70 @@ func (s *Store) GetArticleCount(ctx context.Context) (int, error) {
 // --- Subscriber Management ---
 
 // AddSubscriber adds or updates a subscriber.
-func (s *Store) AddSubscriber(ctx context.Context, email, languages string) error {
+func (s *Store) AddSubscriber(ctx context.Context, userID int, targetType, targetID, languages string) error {
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO subscribers (email, languages, active)
-		VALUES (?, ?, 1)
-		ON CONFLICT(email) DO UPDATE SET languages = ?, active = 1
-	`, email, languages, languages)
+		INSERT INTO subscribers (user_id, target_type, target_id, languages, active)
+		VALUES (?, ?, ?, ?, 1)
+		ON CONFLICT(target_type, target_id) DO UPDATE SET user_id = ?, languages = ?, active = 1
+	`, userID, targetType, targetID, languages, userID, languages)
 	return err
 }
 
-// RemoveSubscriber deactivates a subscriber.
-func (s *Store) RemoveSubscriber(ctx context.Context, email string) error {
+// RemoveSubscriber deactivates a subscriber by ID for a specific user.
+func (s *Store) RemoveSubscriber(ctx context.Context, id, userID int) error {
 	_, err := s.db.ExecContext(ctx, `
-		UPDATE subscribers SET active = 0 WHERE email = ?
-	`, email)
+		UPDATE subscribers SET active = 0 WHERE id = ? AND user_id = ?
+	`, id, userID)
 	return err
+}
+
+// RemoveSubscriberByTarget deactivates a subscriber by its target_type and target_id (Admin use).
+func (s *Store) RemoveSubscriberByTarget(ctx context.Context, targetType, targetID string) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE subscribers SET active = 0 WHERE target_type = ? AND target_id = ?
+	`, targetType, targetID)
+	return err
+}
+
+// GetUserSubscribers retrieves all active subscribers for a specific user.
+func (s *Store) GetUserSubscribers(ctx context.Context, userID int) ([]Subscriber, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, user_id, target_type, target_id, languages, active, created_at 
+		FROM subscribers WHERE active = 1 AND user_id = ?
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subs []Subscriber
+	for rows.Next() {
+		var sub Subscriber
+		if err := rows.Scan(&sub.ID, &sub.UserID, &sub.TargetType, &sub.TargetID, &sub.Languages, &sub.Active, &sub.CreatedAt); err != nil {
+			continue
+		}
+		subs = append(subs, sub)
+	}
+	return subs, nil
+}
+
+// GetSubscriber returns a specific subscriber by target_type and target_id.
+func (s *Store) GetSubscriber(ctx context.Context, targetType, targetID string) (*Subscriber, error) {
+	row := s.db.QueryRowContext(ctx, "SELECT id, user_id, target_type, target_id, languages, active, created_at FROM subscribers WHERE target_type = ? AND target_id = ?", targetType, targetID)
+	var sub Subscriber
+	if err := row.Scan(&sub.ID, &sub.UserID, &sub.TargetType, &sub.TargetID, &sub.Languages, &sub.Active, &sub.CreatedAt); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Not subscribed or not found
+		}
+		return nil, err
+	}
+	return &sub, nil
 }
 
 // GetActiveSubscribers returns all active subscribers.
 func (s *Store) GetActiveSubscribers(ctx context.Context) ([]Subscriber, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, email, languages, active, created_at FROM subscribers WHERE active = 1
+		SELECT id, user_id, target_type, target_id, languages, active, created_at FROM subscribers WHERE active = 1
 	`)
 	if err != nil {
 		return nil, err
@@ -210,7 +258,7 @@ func (s *Store) GetActiveSubscribers(ctx context.Context) ([]Subscriber, error) 
 	var subs []Subscriber
 	for rows.Next() {
 		var sub Subscriber
-		if err := rows.Scan(&sub.ID, &sub.Email, &sub.Languages, &sub.Active, &sub.CreatedAt); err != nil {
+		if err := rows.Scan(&sub.ID, &sub.UserID, &sub.TargetType, &sub.TargetID, &sub.Languages, &sub.Active, &sub.CreatedAt); err != nil {
 			continue
 		}
 		subs = append(subs, sub)
