@@ -72,6 +72,7 @@ func (a *Analyzer) Analyze(ctx context.Context, articles []sources.Article) (*Da
 		},
 		MaxTokens:   4096,
 		Temperature: 0.3,
+		JSONMode:    true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("LLM analysis failed: %w", err)
@@ -82,9 +83,9 @@ func (a *Analyzer) Analyze(ctx context.Context, articles []sources.Article) (*Da
 
 	var digest DailyDigest
 	if err := json.Unmarshal([]byte(jsonContent), &digest); err != nil {
-		// Fallback: treat the entire response as summary text
+		// Fallback: treat the extracted (and fence-stripped) content as summary text
 		digest = DailyDigest{
-			Summary: resp.Content,
+			Summary: jsonContent,
 		}
 	}
 
