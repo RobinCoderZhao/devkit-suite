@@ -1,0 +1,223 @@
+{
+  "Navigation": {
+    "login": "Sign In",
+    "register": "Get Started",
+    "dashboard": "Dashboard",
+    "newsbot": "NewsBot",
+    "settings": "Settings",
+    "logout": "Log Out"
+  },
+  "Landing": {
+    "badge": "Vantage SaaS",
+    "title": "Monitor Competitors. Digest AI News.",
+    "subtitle": "The ultimate intelligence command center for SaaS founders and developers. Track pricing changes and filter global AI trends in one unified dashboard.",
+    "cta_start": "Start for free",
+    "cta_github": "Star on GitHub",
+    "nav_features": "Features",
+    "feature1_title": "Visual Diff Tracking",
+    "feature1_desc": "High-precision HTML tracking to instantly spot subtle changes in your competitors' product matrices and pricing pages.",
+    "feature2_title": "Daily AI News Stream",
+    "feature2_desc": "Curated AI news delivered straight to your inbox. Filters out the noise to extract high-value signals from top tech sources.",
+    "feature3_title": "LLM Smart Summaries",
+    "feature3_desc": "Powered by advanced Large Language Models, providing clear technical insights on 'what changed' and 'why it matters'.",
+    "feature4_title": "Multilingual Real-time Feed",
+    "feature4_desc": "Automatically translates across 6 major languages, breaking down information barriers for seamless access to global AI intelligence.",
+    "contact_title": "Contact Us",
+    "contact_desc": "Have questions or need enterprise support? Feel free to reach out.",
+    "contact_email": "Email",
+    "contact_phone": "Phone",
+    "contact_wechat": "WeChat"
+  },
+  "Onboarding": {
+    "title": "Welcome aboard!",
+    "subtitle": "Let's get your command center ready. What industry are you tracking?",
+    "industries": {
+      "devtools": {
+        "label": "Developer Tools",
+        "desc": "Vercel, Supabase, Cursor"
+      },
+      "llms": {
+        "label": "AI Models & APIs",
+        "desc": "OpenAI, Anthropic, Gemini"
+      },
+      "saas": {
+        "label": "B2B SaaS",
+        "desc": "Stripe, Notion, Linear"
+      }
+    },
+    "configuring": "Configuring workspace...",
+    "continue": "Continue"
+  },
+  "WatchBot": {
+    "tooltip": "Pages added here are continuously monitored in the background. Structural DOM changes and pricing updates will trigger alerts.",
+    "loading": "Loading Battlecards...",
+    "title": "Battlecards",
+    "subtitle": "Your global overview of tracked competitors.",
+    "manage_competitors": "Manage & Add Competitors",
+    "manage_urls": "URLs",
+    "delete_track": "Delete",
+    "manage_urls_title": "Manage URLs",
+    "manage_urls_desc": "Add or remove specific tracked pages for this competitor.",
+    "add_url": "Add",
+    "add_title": "Track New Competitor",
+    "add_desc": "Enter the details of a competitor you want to continuously monitor. Vantage will track their public shifts automatically.",
+    "discover_placeholder": "e.g., I want to monitor JD Cloud's official website updates",
+    "discover_button": "Discover",
+    "form_name": "Company/Product Name",
+    "form_domain": "Official Website URL",
+    "form_prompt": "e.g. Track OpenAI's API pricing",
+    "cancel": "Cancel",
+    "submit": "Add to Tracking",
+    "quota": "Quota",
+    "empty": {
+      "title": "No Competitors Watched",
+      "desc": "Add a domain to start tracking their public shifts immediately.",
+      "cta": "Run Onboarding Again"
+    },
+    "card": {
+      "no_changes": "NO CHANGES YET",
+      "pages_tracked": "Pages Tracked",
+      "activity": "Activity",
+      "active": "Active",
+      "latest_shift": "Latest Shift",
+      "baseline": "Currently baseline monitoring.",
+      "view_timeline": "View Timeline & Diffs",
+      "shift_detected": "Shift Detected",
+      "raw_diff": "raw_diff.patch"
+    },
+    "Timeline": {
+      "loading": "Loading Timeline...",
+      "not_found": "Competitor not found or access denied.",
+      "empty": {
+        "title": "All Clear",
+        "desc": "No changes detected yet for this competitor."
+      },
+      "card": {
+        "shift_detected": "Shift Detected",
+        "raw_diff": "raw_diff.patch"
+      }
+    }
+  },
+  "NewsBot": {
+    "tooltip": "An automated intelligence feed. Once subscribed, high-value industry signals will be pushed to your configured channel as concise summaries.",
+    "loading": "Loading Intelligence Feed...",
+    "title": "NewsBot Stream",
+    "subtitle": "Your daily, curated AI intelligence feed from top global sources.",
+    "read_original": "Read Original",
+    "no_signals": "No active news signals detected.",
+    "subscribe_title": "Subscribe to Daily Stream",
+    "subscribe_placeholder": "Email Address...",
+    "webhook_placeholder": "Webhook URL...",
+    "subscribe_btn": "Subscribe",
+    "subscribing_btn": "Subscribing...",
+    "success_sub": "🎉 Successfully subscribed to the Daily Stream!",
+    "failed_sub": "❌ Failed to subscribe. Please try again.",
+    "subscribed_desc": "You are currently subscribed to the NewsBot daily automated digest stream.",
+    "active_subscriptions": "Active Subscriptions",
+    "add_subscription": "Add New Subscription",
+    "channel": "Channel",
+    "channel_email": "Email",
+    "channel_feishu": "Feishu Bot",
+    "channel_slack": "Slack App",
+    "language": "Language",
+    "lang_auto": "Auto (IP Fallback)",
+    "lang_zh": "Chinese (zh)",
+    "lang_en": "English (en)"
+  },
+  "Settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account settings, billing, and alert preferences.",
+    "loading_rules": "Loading rules...",
+    "logout": "Logout",
+    "tabs": {
+      "billing": "Billing",
+      "alerts": "WatchBot Alerts",
+      "profile": "Profile",
+      "newsbot": "NewsBot"
+    },
+    "billing": {
+      "title": "Subscription Plan",
+      "current": "You are currently on the {plan} plan.",
+      "free": "Free Plan",
+      "pro": "Pro Plan",
+      "active": "Active",
+      "free_desc": "Upgrade to Pro to unlock Smart Alerts and track more competitors.",
+      "pro_desc": "Unlock full access to real-time Smart Alerts and continuously monitor up to 50 competitors.",
+      "upgrade": "Upgrade Plan",
+      "manage": "Manage Billing"
+    },
+    "alerts": {
+      "title": "WatchBot Alerts",
+      "desc": "Define criteria for when WatchBot should send you notifications.",
+      "pro_feature": "Pro Feature",
+      "pro_feature_desc": "Smart Alerts are only available on the Pro plan. Upgrade to receive real-time notifications for critical changes.",
+      "failed_create": "Failed to create rule",
+      "active": "Active Rules",
+      "no_rules": "No alert rules configured yet.",
+      "rule_if": "If",
+      "rule_eq": "equals",
+      "rule_then": "Then DO:",
+      "remove": "Remove",
+      "form": {
+        "cond_type": "Condition Type",
+        "val_severity": "Severity Level",
+        "val_keyword": "Contains Keyword",
+        "target": "Target Value",
+        "high": "High & Above",
+        "medium": "Medium & Above",
+        "low": "All Changes",
+        "action": "Action",
+        "act_email": "Send Email",
+        "act_webhook": "Trigger Webhook",
+        "add": "Add Rule"
+      }
+    },
+    "profile": {
+      "title": "Profile Information",
+      "desc": "Update your personal and company details.",
+      "name_label": "Full Name",
+      "phone_label": "Phone Number",
+      "company_label": "Company/Organization",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "saved": "Profile saved successfully."
+    },
+    "newsbot": {
+      "title": "NewsBot Subscriptions",
+      "desc": "Manage your active AI news intelligence channels.",
+      "active": "Active Channels",
+      "no_subs": "No active subscriptions found.",
+      "target": "Target",
+      "lang": "Language",
+      "remove": "Remove"
+    }
+  },
+  "Auth": {
+    "login_title": "Sign In",
+    "login_desc": "Enter your email below to login to your workspace",
+    "email_label": "Email",
+    "email_placeholder": "m@example.com",
+    "password_label": "Password",
+    "password_confirm": "Confirm Password",
+    "forgot_pass": "Forgot password?",
+    "signin_btn": "Sign In",
+    "no_account": "Don't have an account?",
+    "signup_link": "Sign up",
+    "register_title": "Create an account",
+    "register_desc": "Enter your email below to create your workspace",
+    "code_label": "Verification Code",
+    "code_placeholder": "6-digit code",
+    "send_code": "Send Code",
+    "register_btn": "Create Account",
+    "has_account": "Already have an account?",
+    "signin_link": "Sign in",
+    "code_sent": "Verification code sent to your email.",
+    "pass_mismatch": "Passwords do not match",
+    "enter_email_first": "Please enter your email first",
+    "reset_title": "Reset Password",
+    "reset_desc": "Enter your email and standard info to reset your password",
+    "reset_btn": "Reset Password",
+    "reset_success": "Password reset successfully. You can now log in.",
+    "back_login": "Back to login"
+  }
+}
